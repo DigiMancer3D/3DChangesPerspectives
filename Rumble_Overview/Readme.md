@@ -1,4 +1,4 @@
-## The available files that were also shown or used in 3D Changes Perspectives' episode of the RumbleStudio Overview
+## The available files that were also shown in or used in 3D Changes Perspectives' episode of the RumbleStudio Overview
 
 ### Look in each sub-folder for the objects, download them to use them.
 
