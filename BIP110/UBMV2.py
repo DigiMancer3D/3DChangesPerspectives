@@ -14,23 +14,21 @@ import shutil
 from datetime import datetime
 
 # =============================================================================
-# ULTIMATE BTC MEDIA VAULT v2.3 — FIXED CHECKBOXES + POP-UP IPFS SERVICE SELECTOR
+# ULTIMATE BTC MEDIA VAULT v2.5 — FIXED DEFAULTS + LINUX IPFS HANDLING
 # =============================================================================
 
 class UltimateBTCMediaVault(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("🚀 Ultimate BTC Media Vault v2.3 — Fixed Checkboxes + IPFS Service Pop-up")
-        self.geometry("1180x980")
+        self.title("🚀 Ultimate BTC Media Vault v2.5 — Fixed Defaults + Linux IPFS")
+        self.geometry("1200x980")
         self.configure(bg="#1e1e1e")
         self.resizable(True, True)
 
-        # Visible temp folder
         self.temp_dir = os.path.join(os.getcwd(), "btc_media_temp")
         os.makedirs(self.temp_dir, exist_ok=True)
         self.temp_files = []
 
-        # State
         self.media_path = None
         self.media_bytes = None
         self.base64_str = None
@@ -41,13 +39,20 @@ class UltimateBTCMediaVault(tk.Tk):
         self.pin_list = []
         self.taproot_addr = None
         self.cold_hashes = self._load_cold_storage()
-        self.selected_uploader = None   # will hold the full service dict
+        self.selected_uploader = None
 
-        # Services
         self.ipfs_running = self._detect_ipfs()
         self.btc_running = self._detect_bitcoin_core()
         self.bhb_chkr_path = self._find_bhb_chkr()
         self.bhb_enabled = tk.BooleanVar(value=True)
+
+        # === FIXED DEFAULTS ===
+        self.var_web = tk.BooleanVar(value=True)          # main option starts ON
+        self.var_hardline = tk.BooleanVar(value=False)
+        self.var_pin_announce = tk.BooleanVar(value=False)
+        self.var_tapleaf_pin = tk.BooleanVar(value=False)
+        self.var_multi = tk.BooleanVar(value=False)
+        self.var_ipns = tk.BooleanVar(value=False)
 
         self._create_widgets()
         self._update_service_status()
@@ -107,15 +112,14 @@ class UltimateBTCMediaVault(tk.Tk):
         messagebox.showinfo("Cold Store", f"Saved to offline storage: {cid_or_hash[:16]}...")
 
     def _create_widgets(self):
-        # Use regular tk.Checkbutton for clear visual feedback (orange fill when active)
-        def make_checkbutton(parent, text, var):
-            cb = tk.Checkbutton(parent, text=text, variable=var,
-                                bg="#1e1e1e", fg="#f7931a", selectcolor="#f7931a",
-                                activebackground="#f7931a", activeforeground="#1e1e1e",
-                                font=("Helvetica", 10), anchor="w")
-            return cb
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("TCheckbutton", background="#1e1e1e", foreground="#f7931a", font=("Helvetica", 10))
+        style.map("TCheckbutton",
+                  background=[("active", "#f7931a"), ("selected", "#f7931a")],
+                  foreground=[("active", "#1e1e1e"), ("selected", "#1e1e1e")])
 
-        header = tk.Label(self, text="ULTIMATE BTC MEDIA VAULT v2.3 — Fixed Checkboxes + IPFS Pop-up", bg="#f7931a", fg="#1e1e1e", font=("Helvetica", 20, "bold"))
+        header = tk.Label(self, text="ULTIMATE BTC MEDIA VAULT v2.5 — Fixed Defaults + Linux IPFS", bg="#f7931a", fg="#1e1e1e", font=("Helvetica", 20, "bold"))
         header.pack(fill="x", pady=8)
 
         status_bar = tk.Frame(self, bg="#1e1e1e")
@@ -130,7 +134,7 @@ class UltimateBTCMediaVault(tk.Tk):
         notebook = ttk.Notebook(self)
         notebook.pack(fill="both", expand=True, padx=12, pady=12)
 
-        # ====================== STORE TAB ======================
+        # STORE TAB
         store_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(store_tab, text="Store + Pin Announcement")
 
@@ -145,24 +149,15 @@ class UltimateBTCMediaVault(tk.Tk):
         opts = tk.LabelFrame(store_tab, text="Pinning & Storage Options (keep <81 bytes)", bg="#1e1e1e", fg="#f7931a")
         opts.pack(fill="x", padx=15, pady=12)
 
-        self.var_web = tk.BooleanVar(value=False)
-        self.var_hardline = tk.BooleanVar(value=True)
-        self.var_pin_announce = tk.BooleanVar(value=True)
-        self.var_tapleaf_pin = tk.BooleanVar(value=True)
-        self.var_multi = tk.BooleanVar(value=True)
-        self.var_ipns = tk.BooleanVar(value=True)
+        ttk.Checkbutton(opts, text="🌐 Web-Only (incognito)", variable=self.var_web, style="TCheckbutton").grid(row=0, column=0, sticky="w", padx=10)
+        ttk.Checkbutton(opts, text="🔥 Full Node (Hardline)", variable=self.var_hardline, style="TCheckbutton").grid(row=0, column=1, sticky="w", padx=10)
+        ttk.Checkbutton(opts, text="📌 Announce IPFS/IPNS Pinning (PIN1:)", variable=self.var_pin_announce, style="TCheckbutton").grid(row=1, column=0, sticky="w", padx=10)
+        ttk.Checkbutton(opts, text="🌳 Tapleaf (permanent, non-prunable)", variable=self.var_tapleaf_pin, style="TCheckbutton").grid(row=1, column=1, sticky="w", padx=10)
+        ttk.Checkbutton(opts, text="Multi-CID / IPNS / Torrent list", variable=self.var_multi, style="TCheckbutton").grid(row=2, column=0, sticky="w", padx=10)
+        ttk.Checkbutton(opts, text="Publish mutable IPNS", variable=self.var_ipns, style="TCheckbutton").grid(row=2, column=1, sticky="w", padx=10)
 
-        make_checkbutton(opts, "🌐 Web-Only (incognito)", self.var_web).grid(row=0, column=0, sticky="w", padx=10)
-        make_checkbutton(opts, "🔥 Full Node (Hardline)", self.var_hardline).grid(row=0, column=1, sticky="w", padx=10)
-        make_checkbutton(opts, "📌 Announce IPFS/IPNS Pinning (PIN1:)", self.var_pin_announce).grid(row=1, column=0, sticky="w", padx=10)
-        make_checkbutton(opts, "🌳 Tapleaf (permanent, non-prunable)", self.var_tapleaf_pin).grid(row=1, column=1, sticky="w", padx=10)
-        make_checkbutton(opts, "Multi-CID / IPNS / Torrent list", self.var_multi).grid(row=2, column=0, sticky="w", padx=10)
-        make_checkbutton(opts, "Publish mutable IPNS", self.var_ipns).grid(row=2, column=1, sticky="w", padx=10)
-
-        # === IPFS SERVICE POP-UP BUTTON ===
         tk.Label(opts, text="IPFS Web Uploader Service:", bg="#1e1e1e", fg="#f7931a").grid(row=3, column=0, sticky="w", padx=10, pady=8)
-        self.btn_select_uploader = tk.Button(opts, text="📋 Choose Service (click to open list)", bg="#f7931a", fg="#1e1e1e",
-                                             command=self._show_ipfs_service_popup)
+        self.btn_select_uploader = tk.Button(opts, text="📋 Choose Service (click to open list)", bg="#f7931a", fg="#1e1e1e", command=self._show_ipfs_service_popup)
         self.btn_select_uploader.grid(row=3, column=1, sticky="w", padx=10, pady=8)
 
         self.lbl_selected_service = tk.Label(opts, text="No service selected yet", bg="#1e1e1e", fg="#888", font=("Helvetica", 9))
@@ -175,23 +170,19 @@ class UltimateBTCMediaVault(tk.Tk):
 
         tk.Button(store_tab, text="🌐 Upload + Generate Pinning Announcement", bg="#f7931a", fg="#1e1e1e", command=self._hybrid_upload_and_pin_announce).pack(pady=15)
 
-        # ====================== RECEIVE TAB ======================
+        # RECEIVE TAB
         recv_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(recv_tab, text="Receive + Pin Decoder")
-
         tk.Label(recv_tab, text="Enter TXID (OP_RETURN or Taproot spend)", bg="#1e1e1e", fg="#f7931a").pack(anchor="w", padx=15, pady=10)
         self.entry_txid = tk.Entry(recv_tab, width=80, bg="#2a2a2a", fg="white")
         self.entry_txid.pack(padx=15, pady=5)
-
         tk.Button(recv_tab, text="🔍 Fetch Pointer", bg="#f7931a", command=self._fetch_pointer).pack(pady=5)
         tk.Button(recv_tab, text="🔍 Decode Pinning Announcement", bg="#f7931a", command=self._decode_pinning).pack(pady=5)
-
         self.txt_received = tk.Text(recv_tab, height=14, bg="#2a2a2a", fg="white")
         self.txt_received.pack(fill="both", expand=True, padx=15, pady=5)
-
         tk.Button(recv_tab, text="🧬 Run Tapleaf Base64 Extractor", bg="#444", fg="white", command=self._run_base64_extractor).pack(pady=5)
 
-        # ====================== TAPLEAF & BHB TABS (unchanged) ======================
+        # TAPLEAF TAB
         tap_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(tap_tab, text="🌳 Tapleaf Multisig + Round-Keychain")
         tk.Label(tap_tab, text="On-chain data stays at 34 bytes (P2TR).\nData revealed only when spent via round-keychain.", bg="#1e1e1e", fg="#0f0", justify="left").pack(anchor="w", padx=15, pady=10)
@@ -200,30 +191,27 @@ class UltimateBTCMediaVault(tk.Tk):
         self.lbl_taproot.pack(padx=15, pady=5)
         tk.Button(tap_tab, text="Reveal / 'Mine' Data via Round-Keychain", bg="#f7931a", command=self._simulate_round_keychain_reveal).pack(pady=8)
 
+        # BHB_CHKR TAB
         bhb_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(bhb_tab, text="BHB_CHKR + Cold Store")
         tk.Checkbutton(bhb_tab, text="Enable BHB_CHKR offline mode (auto-detect on close)", variable=self.bhb_enabled, bg="#1e1e1e", fg="white").pack(anchor="w", padx=15, pady=8)
-
         if self.bhb_chkr_path:
             tk.Label(bhb_tab, text=f"✅ BHB_CHKR found:\n{self.bhb_chkr_path}", bg="#1e1e1e", fg="#0f0").pack(anchor="w", padx=15)
         else:
             tk.Label(bhb_tab, text="BHB_CHKR not found", bg="#1e1e1e", fg="#ff0").pack(anchor="w", padx=15)
             tk.Button(bhb_tab, text="Download BHB_CHKR", bg="#444", command=lambda: self._open_url_incognito("https://github.com/DigiMancer3D/BHB_CHKR")).pack(pady=5)
-
         tk.Button(bhb_tab, text="Launch BHB_CHKR", bg="#f7931a", command=self._launch_bhb_chkr).pack(pady=8)
         tk.Button(bhb_tab, text="Save Current Pointer to Cold Storage", bg="#f7931a", command=self._save_current_to_cold).pack(pady=5)
-
         tk.Label(bhb_tab, text="Cold Stored Hashes", bg="#1e1e1e", fg="#f7931a").pack(anchor="w", padx=15, pady=(20,5))
         self.cold_list = tk.Listbox(bhb_tab, height=8, bg="#2a2a2a", fg="white")
         self.cold_list.pack(fill="x", padx=15)
         self._refresh_cold_list()
 
-        # Footer
         footer = tk.Frame(self, bg="#1e1e1e")
         footer.pack(fill="x", padx=15, pady=8)
         tk.Button(footer, text="Refresh Services", command=self._update_service_status).pack(side="left")
         tk.Button(footer, text="Open coinb.in (incognito)", bg="#444", command=self._open_coinbin).pack(side="left", padx=5)
-        tk.Label(footer, text="Hybrid • Tapleaf • Pinning • Pop-up Services", bg="#1e1e1e", fg="#888").pack(side="right")
+        tk.Label(footer, text="Hybrid • Tapleaf • Pinning • Linux Fixed", bg="#1e1e1e", fg="#888").pack(side="right")
 
     def _update_service_status(self):
         self.ipfs_running = self._detect_ipfs()
@@ -237,12 +225,23 @@ class UltimateBTCMediaVault(tk.Tk):
         if self.bhb_enabled.get() and not self.bhb_chkr_path:
             messagebox.showinfo("Auto-Start", "BHB_CHKR not found — download for full offline mode.")
         if not self.ipfs_running and messagebox.askyesno("Auto-Start IPFS?", "IPFS not running. Start daemon now?"):
-            try:
-                subprocess.Popen(["ipfs", "daemon", "--init"], stdout=subprocess.DEVNULL)
-                self.ipfs_running = True
-            except:
-                pass
+            self._start_ipfs_daemon()
         self._update_service_status()
+
+    def _start_ipfs_daemon(self):
+        system = platform.system()
+        try:
+            if system == "Linux":
+                # Kubuntu 24.04 / Wayland / X11 fix
+                cmd = ["ipfs", "daemon", "--init", "--offline"]
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                messagebox.showinfo("IPFS Started", "IPFS daemon started with Linux-compatible flags.\n\nIf you still see sandbox errors, run in terminal: ipfs daemon --init --offline")
+            else:
+                subprocess.Popen(["ipfs", "daemon", "--init"], stdout=subprocess.DEVNULL)
+            time.sleep(2)
+            self.ipfs_running = self._detect_ipfs()
+        except Exception as e:
+            messagebox.showerror("IPFS Start Failed", f"Could not start IPFS automatically.\n\nError: {e}\n\nOn Linux please run in terminal:\n   ipfs daemon --init --offline")
 
     def _select_media(self):
         path = filedialog.askopenfilename(title="Select media file")
@@ -258,20 +257,22 @@ class UltimateBTCMediaVault(tk.Tk):
     def _show_ipfs_service_popup(self):
         popup = tk.Toplevel(self)
         popup.title("Select IPFS / IPNS Service")
-        popup.geometry("720x420")
+        popup.geometry("780x480")
         popup.configure(bg="#1e1e1e")
 
         tk.Label(popup, text="Choose an IPFS Web Uploader / Node", bg="#1e1e1e", fg="#f7931a", font=("Helvetica", 12, "bold")).pack(pady=10)
 
-        listbox = tk.Listbox(popup, height=12, bg="#2a2a2a", fg="white", font=("Helvetica", 10))
+        listbox = tk.Listbox(popup, height=14, bg="#2a2a2a", fg="white", font=("Helvetica", 10))
         listbox.pack(fill="both", expand=True, padx=15, pady=5)
 
-        # Pre-defined services with the exact format requested
         services = [
             {"name": "upload.ipfs.tech (official)", "node": "https://api.ipfs.io", "api_port": "5001", "gateway_port": "8080", "url": "https://upload.ipfs.tech/"},
-            {"name": "www.ipfsupload.com (fast & anonymous)", "node": "https://api.ipfsupload.com", "api_port": "5001", "gateway_port": "8080", "url": "https://www.ipfsupload.com/"},
-            {"name": "anarkrypto.github.io (simple panel)", "node": "https://ipfs.anarkrypto.com", "api_port": "5001", "gateway_port": "8080", "url": "https://anarkrypto.github.io/upload-files-to-ipfs-from-browser-panel/public/"},
+            {"name": "www.ipfsupload.com (fast)", "node": "https://api.ipfsupload.com", "api_port": "5001", "gateway_port": "8080", "url": "https://www.ipfsupload.com/"},
+            {"name": "nft.storage (great for media)", "node": "https://api.nft.storage", "api_port": "443", "gateway_port": "443", "url": "https://nft.storage/"},
+            {"name": "web3.storage (free tier)", "node": "https://api.web3.storage", "api_port": "443", "gateway_port": "443", "url": "https://web3.storage/"},
+            {"name": "anarkrypto.github.io (simple)", "node": "https://ipfs.anarkrypto.com", "api_port": "5001", "gateway_port": "8080", "url": "https://anarkrypto.github.io/upload-files-to-ipfs-from-browser-panel/public/"},
             {"name": "Pinata.cloud (free tier)", "node": "https://api.pinata.cloud", "api_port": "443", "gateway_port": "443", "url": "https://app.pinata.cloud/pinmanager/upload"},
+            {"name": "Filebase (free tier)", "node": "https://api.filebase.com", "api_port": "443", "gateway_port": "443", "url": "https://filebase.com/"},
             {"name": "Local IPFS Daemon (127.0.0.1)", "node": "http://127.0.0.1", "api_port": "5001", "gateway_port": "8080", "url": "http://127.0.0.1:5001/webui"},
         ]
 
@@ -281,8 +282,7 @@ class UltimateBTCMediaVault(tk.Tk):
 
         def on_select():
             idx = listbox.curselection()
-            if not idx:
-                return
+            if not idx: return
             selected = services[idx[0]]
             self.selected_uploader = selected
             self.lbl_selected_service.config(
@@ -299,7 +299,6 @@ class UltimateBTCMediaVault(tk.Tk):
             return
 
         if self.var_hardline.get() and self.ipfs_running:
-            # hardline path unchanged
             tmp = "/tmp/media.tmp"
             with open(tmp, "wb") as f:
                 f.write(self.media_bytes)
@@ -312,7 +311,6 @@ class UltimateBTCMediaVault(tk.Tk):
             finally:
                 os.unlink(tmp)
         else:
-            # WEB UPLOADER WITH POP-UP SERVICE
             if not self.selected_uploader:
                 messagebox.showwarning("No service", "Please click 'Choose Service' first")
                 return
@@ -320,20 +318,12 @@ class UltimateBTCMediaVault(tk.Tk):
             service = self.selected_uploader
             url = service["url"]
 
-            # Local daemon special handling
             if "Local IPFS Daemon" in service["name"]:
                 if not self.ipfs_running:
                     if messagebox.askyesno("Local Daemon", "Local IPFS daemon not running.\nStart it now?"):
-                        try:
-                            subprocess.Popen(["ipfs", "daemon", "--init"], stdout=subprocess.DEVNULL)
-                            self.ipfs_running = True
-                            messagebox.showinfo("Daemon Started", "IPFS daemon is now running on 127.0.0.1:5001")
-                        except:
-                            messagebox.showerror("Failed", "Could not start daemon. Please run 'ipfs daemon' manually.")
-                            return
-                url = "http://127.0.0.1:5001/webui"   # open local web UI
+                        self._start_ipfs_daemon()
+                url = "http://127.0.0.1:5001/webui"
 
-            # Create temp file
             ext = os.path.splitext(self.media_path or "file.bin")[1]
             safe_name = f"upload_{int(time.time())}{ext}"
             temp_path = os.path.join(self.temp_dir, safe_name)
@@ -341,18 +331,19 @@ class UltimateBTCMediaVault(tk.Tk):
                 f.write(self.media_bytes)
             self.temp_files.append(temp_path)
 
-            messagebox.showinfo("Web Upload Ready", 
-                f"✅ Temp file ready!\n\nPath: {temp_path}\n\n"
-                f"Service: {service['name']}\n"
-                f"1. Drag the file into the uploader tab.\n"
-                f"2. Paste the CID back here after upload.")
+            messagebox.showinfo("Web Upload Ready", f"✅ Temp file ready!\nPath: {temp_path}\n\nService: {service['name']}\nDrag the file into the uploader.")
 
             self._open_url_incognito(url)
             cid = simpledialog.askstring("IPFS CID", "Paste the CID you received from the uploader:", parent=self)
             if cid:
                 self.ipfs_cid = cid.strip()
+                if not self._validate_cid(self.ipfs_cid):
+                    if messagebox.askyesno("Upload Error", "CID test failed (404 / network error).\nWould you like to choose a different service and try again?"):
+                        self._show_ipfs_service_popup()
+                        return
+                    else:
+                        self.ipfs_cid = None
 
-        # Build pinning list & pointer (unchanged)
         self.pin_list = [self.ipfs_cid] if self.ipfs_cid else []
         if self.ipns_name:
             self.pin_list.append(self.ipns_name)
@@ -388,12 +379,22 @@ class UltimateBTCMediaVault(tk.Tk):
         else:
             messagebox.showinfo("Pinning Ready", f"OP_RETURN hex ready!\n\n{self.pointer_hex}\n\nBroadcast this to announce pinning.")
 
+    def _validate_cid(self, cid):
+        if not cid or not (cid.startswith("Qm") or cid.startswith("bafy")):
+            return False
+        try:
+            test_url = f"https://ipfs.io/ipfs/{cid}"
+            req = urllib.request.Request(test_url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=8):
+                return True
+        except:
+            return False
+
     def _commit_tapleaf_pinning(self):
         commitment = hashlib.sha256(self.pointer_bytes).digest()
         self.taproot_addr = f"bc1p{commitment.hex()[:32]}"
         messagebox.showinfo("Tapleaf Pinning Created", f"Fund this permanent Taproot address:\n{self.taproot_addr}\n\nSpend reveals full PIN1: list — non-prunable forever.")
 
-    # ====================== UNCHANGED METHODS FROM v2.2 ======================
     def _decode_pinning(self):
         txid = self.entry_txid.get().strip()
         if not txid: return
@@ -497,6 +498,6 @@ class UltimateBTCMediaVault(tk.Tk):
         self._open_url_incognito("https://coinb.in/#newTransaction")
 
 if __name__ == "__main__":
-    print("🚀 Launching Ultimate BTC Media Vault v2.3 — Checkboxes fixed + IPFS service pop-up")
+    print("🚀 Launching Ultimate BTC Media Vault v2.5 — Fixed defaults + Linux IPFS handling")
     app = UltimateBTCMediaVault()
     app.mainloop()
