@@ -120,7 +120,7 @@ class UltimateBTCMediaVault(tk.Tk):
         style.configure("TCheckbutton", background="#1e1e1e", foreground="#f7931a", font=("Helvetica", 10))
         style.map("TCheckbutton", background=[("active", "#f7931a"), ("selected", "#f7931a")], foreground=[("active", "#1e1e1e"), ("selected", "#1e1e1e")])
 
-        header = tk.Label(self, text="ULTIMATE BTC MEDIA VAULT v2.9 — Fixed EPERM + IPFS/IPNS + Tapleaf Verification", bg="#f7931a", fg="#1e1e1e", font=("Helvetica", 20, "bold"))
+        header = tk.Label(self, text="ULTIMATE BTC MEDIA VAULT [UBMV2.py]", bg="#f7931a", fg="#1e1e1e", font=("Helvetica", 20, "bold"))
         header.pack(fill="x", pady=8)
 
         status_bar = tk.Frame(self, bg="#1e1e1e")
