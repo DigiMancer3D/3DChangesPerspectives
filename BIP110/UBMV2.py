@@ -15,18 +15,21 @@ import shutil
 from datetime import datetime
 
 # =============================================================================
-# ULTIMATE BTC MEDIA VAULT v2.0 — FULLY INTEGRATED
-# Hybrid (Hardline + Web) + Tapleaf Multisig + BHB_CHKR + IPFS/IPNS Pinning Announcements
-# No extra pip installs required
+# ULTIMATE BTC MEDIA VAULT v2.1 — FIXED TEMP FILE HANDLING + IPFS PINNING
 # =============================================================================
 
 class UltimateBTCMediaVault(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("🚀 Ultimate BTC Media Vault v2 — IPFS Pinning on BTC")
+        self.title("🚀 Ultimate BTC Media Vault v2.1 — IPFS Pinning on BTC (Fixed Temp Files)")
         self.geometry("1120x920")
         self.configure(bg="#1e1e1e")
         self.resizable(True, True)
+
+        # Visible temp folder next to the script
+        self.temp_dir = os.path.join(os.getcwd(), "btc_media_temp")
+        os.makedirs(self.temp_dir, exist_ok=True)
+        self.temp_files = []  # track files so they stay until program closes
 
         # State
         self.media_path = None
@@ -36,11 +39,11 @@ class UltimateBTCMediaVault(tk.Tk):
         self.pointer_hex = None
         self.ipfs_cid = None
         self.ipns_name = None
-        self.pin_list = []          # for multi-CID / IPNS / torrent pinning
+        self.pin_list = []
         self.taproot_addr = None
         self.cold_hashes = self._load_cold_storage()
 
-        # Service detection
+        # Services
         self.ipfs_running = self._detect_ipfs()
         self.btc_running = self._detect_bitcoin_core()
         self.bhb_chkr_path = self._find_bhb_chkr()
@@ -49,6 +52,18 @@ class UltimateBTCMediaVault(tk.Tk):
         self._create_widgets()
         self._update_service_status()
         self.after(1500, self._auto_start_services_if_enabled)
+
+        # Cleanup only when program closes
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        # Optional: you can delete temp files here if you want, but we keep them by default
+        if messagebox.askyesno("Exit", "Delete btc_media_temp folder before closing?"):
+            try:
+                shutil.rmtree(self.temp_dir)
+            except:
+                pass
+        self.destroy()
 
     def _detect_ipfs(self):
         try:
@@ -88,11 +103,7 @@ class UltimateBTCMediaVault(tk.Tk):
         return []
 
     def _save_cold_storage(self, cid_or_hash):
-        self.cold_hashes.append({
-            "cid": cid_or_hash,
-            "timestamp": datetime.now().isoformat(),
-            "verified": False
-        })
+        self.cold_hashes.append({"cid": cid_or_hash, "timestamp": datetime.now().isoformat(), "verified": False})
         with open("cold_hashes.json", "w") as f:
             json.dump({"hashes": self.cold_hashes, "last_updated": datetime.now().isoformat()}, f)
         messagebox.showinfo("Cold Store", f"Saved to offline storage: {cid_or_hash[:16]}...")
@@ -103,11 +114,9 @@ class UltimateBTCMediaVault(tk.Tk):
         style.configure("TButton", font=("Helvetica", 10, "bold"))
         style.configure("TCheckbutton", background="#1e1e1e", foreground="#f7931a")
 
-        # Header
-        header = tk.Label(self, text="ULTIMATE BTC MEDIA VAULT v2 — IPFS PINNING ENABLED", bg="#f7931a", fg="#1e1e1e", font=("Helvetica", 20, "bold"))
+        header = tk.Label(self, text="ULTIMATE BTC MEDIA VAULT v2.1 — IPFS PINNING (Fixed Temp Files)", bg="#f7931a", fg="#1e1e1e", font=("Helvetica", 20, "bold"))
         header.pack(fill="x", pady=8)
 
-        # Status bar
         status_bar = tk.Frame(self, bg="#1e1e1e")
         status_bar.pack(fill="x", padx=10, pady=5)
         self.lbl_ipfs = tk.Label(status_bar, text="IPFS: ?", bg="#1e1e1e", fg="white")
@@ -120,7 +129,7 @@ class UltimateBTCMediaVault(tk.Tk):
         notebook = ttk.Notebook(self)
         notebook.pack(fill="both", expand=True, padx=12, pady=12)
 
-        # ====================== STORE TAB ======================
+        # STORE TAB
         store_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(store_tab, text="Store + Pin Announcement")
 
@@ -132,7 +141,6 @@ class UltimateBTCMediaVault(tk.Tk):
         self.txt_base64 = tk.Text(store_tab, height=3, bg="#2a2a2a", fg="white")
         self.txt_base64.pack(fill="x", padx=15, pady=5)
 
-        # Options
         opts = tk.LabelFrame(store_tab, text="Pinning & Storage Options (keep <81 bytes)", bg="#1e1e1e", fg="#f7931a")
         opts.pack(fill="x", padx=15, pady=12)
 
@@ -150,7 +158,6 @@ class UltimateBTCMediaVault(tk.Tk):
         tk.Checkbutton(opts, text="Multi-CID / IPNS / Torrent list", variable=self.var_multi, bg="#1e1e1e", fg="white").grid(row=2, column=0, sticky="w", padx=10)
         tk.Checkbutton(opts, text="Publish mutable IPNS", variable=self.var_ipns, bg="#1e1e1e", fg="white").grid(row=2, column=1, sticky="w", padx=10)
 
-        # Limit display
         self.limit_frame = tk.Frame(store_tab, bg="#1e1e1e", bd=4, relief="solid")
         self.limit_frame.pack(fill="x", padx=15, pady=8)
         self.lbl_limit = tk.Label(self.limit_frame, text="Pointer size: -- bytes", bg="#1e1e1e", fg="white", font=("Helvetica", 11, "bold"))
@@ -158,7 +165,7 @@ class UltimateBTCMediaVault(tk.Tk):
 
         tk.Button(store_tab, text="🌐 Upload + Generate Pinning Announcement", bg="#f7931a", fg="#1e1e1e", command=self._hybrid_upload_and_pin_announce).pack(pady=15)
 
-        # ====================== RECEIVE TAB ======================
+        # RECEIVE TAB
         recv_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(recv_tab, text="Receive + Pin Decoder")
 
@@ -174,7 +181,7 @@ class UltimateBTCMediaVault(tk.Tk):
 
         tk.Button(recv_tab, text="🧬 Run Tapleaf Base64 Extractor", bg="#444", fg="white", command=self._run_base64_extractor).pack(pady=5)
 
-        # ====================== TAPLEAF + ROUND-KEYCHAIN TAB ======================
+        # TAPLEAF TAB
         tap_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(tap_tab, text="🌳 Tapleaf Multisig + Round-Keychain")
         tk.Label(tap_tab, text="On-chain data stays at 34 bytes (P2TR).\nData revealed only when spent via round-keychain.", bg="#1e1e1e", fg="#0f0", justify="left").pack(anchor="w", padx=15, pady=10)
@@ -183,7 +190,7 @@ class UltimateBTCMediaVault(tk.Tk):
         self.lbl_taproot.pack(padx=15, pady=5)
         tk.Button(tap_tab, text="Reveal / 'Mine' Data via Round-Keychain", bg="#f7931a", command=self._simulate_round_keychain_reveal).pack(pady=8)
 
-        # ====================== BHB_CHKR + COLD STORAGE TAB ======================
+        # BHB_CHKR TAB
         bhb_tab = tk.Frame(notebook, bg="#1e1e1e")
         notebook.add(bhb_tab, text="BHB_CHKR + Cold Store")
         tk.Checkbutton(bhb_tab, text="Enable BHB_CHKR offline mode (auto-detect on close)", variable=self.bhb_enabled, bg="#1e1e1e", fg="white").pack(anchor="w", padx=15, pady=8)
@@ -258,13 +265,21 @@ class UltimateBTCMediaVault(tk.Tk):
             finally:
                 os.unlink(tmp)
         else:
-            # Web fallback
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(self.media_path or ".bin")[1]) as tmp:
-                tmp.write(self.media_bytes)
-                tmp_path = tmp.name
-            messagebox.showinfo("Web Upload", f"Drag this file into the uploader:\n{tmp_path}")
+            # WEB FALLBACK - FIXED TEMP FILE
+            ext = os.path.splitext(self.media_path or "file.bin")[1]
+            safe_name = f"upload_{int(time.time())}{ext}"
+            temp_path = os.path.join(self.temp_dir, safe_name)
+            with open(temp_path, "wb") as f:
+                f.write(self.media_bytes)
+            self.temp_files.append(temp_path)   # keep until program closes
+
+            messagebox.showinfo("Web Upload Ready", 
+                f"✅ Temp file created (easy to find!)\n\n"
+                f"Path: {temp_path}\n\n"
+                f"1. Drag this file into the IPFS web uploader that will open.\n"
+                f"2. After upload, paste the CID back here.")
             self._open_url_incognito("https://anarkrypto.github.io/upload-files-to-ipfs-from-browser-panel/public/")
-            cid = simpledialog.askstring("IPFS CID", "Paste the CID you received:", parent=self)
+            cid = simpledialog.askstring("IPFS CID", "Paste the CID you received from the uploader:", parent=self)
             if cid:
                 self.ipfs_cid = cid.strip()
 
@@ -276,7 +291,7 @@ class UltimateBTCMediaVault(tk.Tk):
         if extra:
             self.pin_list.extend([x.strip() for x in extra.split(",") if x.strip()])
 
-        # Create pointer (always ≤48 bytes)
+        # Create pointer
         if self.var_multi.get() and len(self.pin_list) > 1:
             combined = "\n".join(self.pin_list).encode()
             payload_str = hashlib.sha256(combined).hexdigest()
@@ -310,10 +325,10 @@ class UltimateBTCMediaVault(tk.Tk):
         self.taproot_addr = f"bc1p{commitment.hex()[:32]}"
         messagebox.showinfo("Tapleaf Pinning Created", f"Fund this permanent Taproot address:\n{self.taproot_addr}\n\nSpend reveals full PIN1: list — non-prunable forever.")
 
+    # (All other methods below are unchanged from v2.0 and work exactly as before)
     def _decode_pinning(self):
         txid = self.entry_txid.get().strip()
-        if not txid:
-            return
+        if not txid: return
         try:
             url = f"https://mempool.space/api/tx/{txid}"
             with urllib.request.urlopen(url, timeout=10) as r:
@@ -335,8 +350,7 @@ class UltimateBTCMediaVault(tk.Tk):
 
     def _fetch_pointer(self):
         txid = self.entry_txid.get().strip()
-        if not txid:
-            return
+        if not txid: return
         try:
             url = f"https://mempool.space/api/tx/{txid}"
             with urllib.request.urlopen(url, timeout=10) as r:
@@ -373,8 +387,7 @@ class UltimateBTCMediaVault(tk.Tk):
         messagebox.showinfo("Taproot Multisig", "2-of-3 Taproot address generated.\nFund it — spend reveals pinning list.")
 
     def _simulate_round_keychain_reveal(self):
-        if not self.pointer_bytes:
-            return
+        if not self.pointer_bytes: return
         key = hashlib.sha256(self.pointer_bytes).digest()
         for i in range(3):
             key = hashlib.sha256(key + bytes([i])).digest()
@@ -416,6 +429,6 @@ class UltimateBTCMediaVault(tk.Tk):
         self._open_url_incognito("https://coinb.in/#newTransaction")
 
 if __name__ == "__main__":
-    print("🚀 Launching Ultimate BTC Media Vault v2 — IPFS Pinning Fully Integrated")
+    print("🚀 Launching Ultimate BTC Media Vault v2.1 — Temp files now saved in btc_media_temp folder")
     app = UltimateBTCMediaVault()
     app.mainloop()
