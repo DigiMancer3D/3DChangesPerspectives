@@ -21,7 +21,7 @@ from datetime import datetime
 class UltimateBTCMediaVault(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("🚀 Ultimate BTC Media Vault)
+        self.title("🚀 Ultimate BTC Media Vault")
         self.geometry("1220x1020")
         self.configure(bg="#1e1e1e")
         self.resizable(True, True)
