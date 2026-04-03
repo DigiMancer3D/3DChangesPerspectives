@@ -32,7 +32,7 @@ async function spxCompressBase64(base64Media) {
 }
 ```
 
-**Method (1) Simple: media → Base64 → [unknown] → IPNS → SPX → Prep → BTC OP_RETURN**  
+**Method (1) Simple: media → Base64 → Prep → IPNS → SPX → Prep → BTC OP_RETURN**  
 **How it works**: Full media (base64) is uploaded to IPFS → published under an IPNS name (mutable pointer). The IPNS key/CID (or the full base64 if tiny) is run through SPX compression. The resulting compact SPX string (or SPX-of-CID) goes into OP_RETURN. Retrieval: scan chain for the SPX payload → detangle with SPX decoder → resolve IPNS → fetch media. This gives a permanent on-chain pointer with off-chain mutable content.  
 **Why SPX + IPNS**: SPX makes the pointer ultra-compact and verifiable; IPNS adds mutability without re-publishing on-chain.  
 **Scripts needed (output script)**:  
