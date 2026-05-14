@@ -13,6 +13,11 @@ Various Images and explainer visuals made for the YouTube webshow 3D Changes Per
 --
 
 --
+# Locations of Streaming
+
+- https://www.youtube.com/@BitcoinliveDB/streams
+
+- https://rumble.com/user/DecentralizedBroadcasting/livestreams
 
 --
 
