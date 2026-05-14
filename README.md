@@ -3,8 +3,12 @@ Various Images and explainer visuals made for the YouTube webshow 3D Changes Per
 
 
 ---
---
+-- 
+# Playlist History
 
+- https://www.youtube.com/playlist?list=PLg_KeN5fOT6-dSlkkdVLv_9eXQdX2jz-T
+
+- https://www.youtube.com/playlist?list=PLg_KeN5fOT68XyebZTWsAlIIzxmK-GWNE
 --
 
 --
