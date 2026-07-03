@@ -1,0 +1,104 @@
+{
+  "buttstore_format": "3DCP-BUTTSTORE",
+  "version": "1.0.0-rc1",
+  "header": {
+    "magic": "3DCP_BUTTSTORE",
+    "abi": "3dcp.perspective_console.buttstore.v0",
+    "project": "3DCP Perspective Console",
+    "theme": "The Perspective Lab",
+    "created_at": "2026-07-02T18:12:09+00:00",
+    "modified_at": "2026-07-03T06:47:23+00:00",
+    "active_card_id": "source-analyzer",
+    "resource_profile": "low",
+    "output": {
+      "width": 960,
+      "height": 500,
+      "background": "#121418",
+      "title": "3DCP Perspective Console - Output"
+    },
+    "quick_cards": [
+      {
+        "id": "source-analyzer",
+        "label": "Source Analyzer",
+        "type": "source_analyzer"
+      },
+      {
+        "id": "blank-hide",
+        "label": "Blank / Hide",
+        "type": "blank"
+      }
+    ]
+  },
+  "under_header": {
+    "dirty": false,
+    "output_visible": true,
+    "controller_geometry": "1083x874+80+80",
+    "output_geometry": "960x500+80+80",
+    "scan_loop": false,
+    "scan_speed_ms": 67,
+    "scanner_color": "#00ff99",
+    "last_loaded_path": "data/buttstores/default_episode.buttstore",
+    "last_runtime_event": "v1.0.0-rc1-github-ready-template",
+    "scratch": {
+      "selected_layer_id": null,
+      "unsaved_note": ""
+    },
+    "controller_geometry_migrated_v082": true,
+    "output_topmost": false,
+    "output_borderless": false
+  },
+  "stage": {
+    "abi_style": "draft values live here before they are applied into body/cards",
+    "draft_cards": {},
+    "save_body_pending": false
+  },
+  "body": {
+    "cards": [
+      {
+        "id": "source-analyzer",
+        "label": "Source Analyzer",
+        "type": "source_analyzer",
+        "fields": {
+          "sourceType": "Primary",
+          "confidence": "Medium",
+          "sourceLink": "",
+          "claim": "Current claim goes here.",
+          "evidence": "Evidence shown on browser or cited source.",
+          "openQuestion": "What still needs checking?",
+          "verdict": "Still Checking"
+        },
+        "layers": [
+          {
+            "id": "emoji-default-scan",
+            "type": "emoji",
+            "text": "🔍",
+            "x": 900,
+            "y": 210,
+            "size": 26,
+            "opacity": 1.0,
+            "z": 10,
+            "name": "Scan Magnifier",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "blank-hide",
+        "label": "Blank / Hide",
+        "type": "blank",
+        "fields": {},
+        "layers": []
+      }
+    ]
+  },
+  "footer": {
+    "serial": 1,
+    "high_water_serial": 1,
+    "save_count": 0,
+    "created_serial": 1,
+    "last_wipe_serial": 0,
+    "public_clean_ready": false,
+    "history": [],
+    "notes": "Footer values are forward-only unless the user performs a to-default wipe."
+  }
+}
