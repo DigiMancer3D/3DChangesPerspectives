@@ -1,12 +1,12 @@
 # 3DCP Perspective Console
 
-**Version:** 1.0.0-rc1
+**Version:** 1.0.0
 
 ## Overview
 
-The **3DCP Perspective Console** is a specialized analytical interface designed for the 3D Changes Perspectives YouTube webshow. This interactive console enables systematic source analysis, evidence evaluation, and claim verification through an intuitive card-based visual system.
+The **3DCP Perspective Console** is a specialized analytical interface designed for the 3D Changes Perspectives webshow. This interactive console enables systematic source analysis, evidence evaluation, and claim verification through an intuitive card-based visual system.
 
-The console provides researchers, educators, and content creators with a structured environment to examine information sources, assess confidence levels, and track verification status in real-time, with comprehensive visual overlay capabilities and customizable emoji-based annotation systems.
+The console provides content creators with a structured environment to examine information sources, assess confidence levels, and track verification status in real-time, with comprehensive visual overlay capabilities and customizable emoji-based annotation systems.
 
 ## Purpose
 
@@ -271,46 +271,10 @@ bash install_parent_launcher.sh
 
 This creates launcher shortcuts at the parent directory level for convenient access.
 
-## Development
-
-### Project Information
-
-- **Repository**: [DigiMancer3D/3DChangesPerspectives](https://github.com/DigiMancer3D/3DChangesPerspectives)
-- **Primary Language**: Python (85.1%)
-- **Scripting**: Shell (14.9%)
-- **Status**: Release Candidate (v1.0.0-rc1)
-- **Theme**: The Perspective Lab
-
-### Contributing
-
-Contributions are welcome. Please ensure:
-
-1. All scripts pass the acceptance test suite
-2. Health checks pass: `bash health_report_3dcp_console.sh`
-3. New dependencies are added to `requirements.txt`
-4. Version increments are reflected in `VERSION.txt`
-
 ## Documentation
 
 Additional documentation is available in the `docs/` directory. Refer to individual script files for detailed usage information.
 
-## License
-
-Refer to the parent repository license: [3DChangesPerspectives LICENSE](../LICENSE)
-
-## Support
-
-For issues, feature requests, or contributions:
-
-- GitHub Issues: [3DChangesPerspectives Issues](https://github.com/DigiMancer3D/3DChangesPerspectives/issues)
-- Repository: [3D Changes Perspectives](https://github.com/DigiMancer3D/3DChangesPerspectives)
-
-## About 3D Changes Perspectives
-
-The **3D Changes Perspectives** YouTube webshow explores educational visuals and explainer content designed to enhance learning beyond each episode. The PerspectiveConsole is a cornerstone tool enabling structured analysis and professional presentation of research findings.
-
 ---
 
-**Last Updated**: 2026-07-03  
-**Maintainer**: DigiMancer3D  
-**Status**: Active Development
+
