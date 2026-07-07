@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SWAR Reader
+Comment=Open SWAR in local-only reader mode
+Exec=/FULL/PATH/TO/SWAR/launch_reader.sh %f
+Icon=/FULL/PATH/TO/SWAR/icon-reader.svg
+Terminal=false
+Categories=Utility;Viewer;
+MimeType=text/plain;text/markdown;

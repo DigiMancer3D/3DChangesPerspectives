@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SWAR Standard
+Comment=Open SWAR in standard reader/editor mode
+Exec=/FULL/PATH/TO/SWAR/launch_standard.sh %f
+Icon=/FULL/PATH/TO/SWAR/icon-standard.svg
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;
