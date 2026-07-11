@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from html import escape
+from html import escape, unescape
 import re
 from urllib.parse import quote
 
-from .parser import ScriptDoc, Block
+from .parser import ScriptDoc, Block, _normalize_color_profile
 from .themes import Theme, get_theme
 
 
@@ -29,9 +29,10 @@ def render_doc_html(doc: ScriptDoc, theme_name: str = "Dark Mode", allow_online_
             elif last_real_kind not in {"", "header", "meta_secret", "blank", "source"}:
                 parts.append('<div class="source-pre-gap"></div>')
 
-        html = render_block(block, theme, allow_online_links=allow_online_links)
+        fancy_variant = 1 if block.kind == "markdown_fenced_box" and last_real_kind in {"markdown_fenced_box", "arrow_title"} else 0
+        html = render_block(block, theme, allow_online_links=allow_online_links, fancy_variant=fancy_variant)
         if html:
-            parts.append(html)
+            parts.append(_apply_color_profile(html, block.attrs.get("color_profile"), theme))
 
         if block.kind != "blank":
             last_real_kind = block.kind
@@ -64,13 +65,127 @@ def _source_child_counts(blocks: list[Block]) -> dict[int, int]:
         counts[i] = count
     return counts
 
-def render_block(block: Block, theme: Theme, allow_online_links: bool = False) -> str:
+_COLORABLE_TAG_RE = re.compile(
+    r"<(?P<tag>section|div|p|span|a|code|blockquote|h[1-6]|table|td|th)(?P<attrs>\s[^<>]*?)?>",
+    re.IGNORECASE,
+)
+_STYLE_ATTR_RE = re.compile(r"\sstyle=(?P<quote>['\"])(?P<value>.*?)(?P=quote)", re.IGNORECASE)
+
+
+def _hex_rgb(value: str, fallback: tuple[int, int, int] = (0, 0, 0)) -> tuple[int, int, int]:
+    text = str(value or "").strip().lstrip("#")
+    try:
+        if len(text) == 3:
+            return tuple(int(ch * 2, 16) for ch in text)  # type: ignore[return-value]
+        if len(text) >= 6:
+            return int(text[0:2], 16), int(text[2:4], 16), int(text[4:6], 16)
+    except ValueError:
+        pass
+    return fallback
+
+
+def _channel_to_byte(value: str) -> int:
+    value = value.strip()
+    if value.endswith("%"):
+        return max(0, min(255, round(float(value[:-1]) * 2.55)))
+    return max(0, min(255, round(float(value))))
+
+
+def _alpha_to_unit(value: str) -> float:
+    value = value.strip()
+    if value.endswith("%"):
+        return max(0.0, min(1.0, float(value[:-1]) / 100.0))
+    return max(0.0, min(1.0, float(value)))
+
+
+def _qt_safe_profile_color(color: str | None, theme: Theme) -> tuple[str, str] | None:
+    """Return canonical input plus a solid QTextBrowser-safe hex color.
+
+    Qt rich text reliably supports direct hex colors but not browser CSS custom
+    properties. Alpha is composited against the active theme background.
+    """
+    canonical = _normalize_color_profile(str(color or "").strip())
+    if not canonical:
+        return None
+    bg = _hex_rgb(theme.bg)
+    alpha = 1.0
+    if canonical.startswith("#"):
+        digits = canonical[1:]
+        if len(digits) in {3, 4}:
+            rgb = tuple(int(ch * 2, 16) for ch in digits[:3])
+            if len(digits) == 4:
+                alpha = int(digits[3] * 2, 16) / 255.0
+        else:
+            rgb = (int(digits[0:2], 16), int(digits[2:4], 16), int(digits[4:6], 16))
+            if len(digits) == 8:
+                alpha = int(digits[6:8], 16) / 255.0
+    else:
+        match = re.fullmatch(r"(?i)rgba?\((.*?)\)", canonical)
+        if not match:
+            return None
+        parts = [part.strip() for part in match.group(1).split(",")]
+        if len(parts) not in {3, 4}:
+            return None
+        rgb = tuple(_channel_to_byte(part) for part in parts[:3])
+        if len(parts) == 4:
+            alpha = _alpha_to_unit(parts[3])
+    blended = tuple(round(channel * alpha + bg_part * (1.0 - alpha)) for channel, bg_part in zip(rgb, bg))
+    return canonical, "#" + "".join(f"{value:02x}" for value in blended)
+
+
+def _apply_color_profile(html: str, color: str | None, theme: Theme, *, local: bool = False) -> str:
+    """Color existing HTML tags directly without wrapper nodes.
+
+    Important and fancy boxes keep their original table structure. Local line
+    and row profiles are marked so whole-object coloring cannot overwrite them.
+    """
+    resolved = _qt_safe_profile_color(color, theme)
+    if not resolved or not html:
+        return html
+    canonical, css_color = resolved
+    declarations = (
+        f"color:{css_color} !important;"
+        f"border-color:{css_color} !important;"
+        f"text-decoration-color:{css_color} !important;"
+    )
+    safe_canonical = escape(canonical, quote=True)
+
+    def replace(match: re.Match[str]) -> str:
+        tag = match.group("tag")
+        attrs = match.group("attrs") or ""
+        if not local and "data-swar-local-color=" in attrs:
+            return match.group(0)
+        style_match = _STYLE_ATTR_RE.search(attrs)
+        if style_match:
+            old_style = style_match.group("value").rstrip()
+            if old_style and not old_style.endswith(";"):
+                old_style += ";"
+            replacement = f' style="{old_style}{declarations}"'
+            attrs = attrs[:style_match.start()] + replacement + attrs[style_match.end():]
+        else:
+            attrs += f' style="{declarations}"'
+        marker = "data-swar-local-color" if local else "data-swar-color"
+        attrs += f' {marker}="{safe_canonical}"'
+        return f"<{tag}{attrs}>"
+
+    return _COLORABLE_TAG_RE.sub(replace, html)
+
+
+def render_block(block: Block, theme: Theme, allow_online_links: bool = False, fancy_variant: int = 0) -> str:
     kind = block.kind
     text = block.text or ""
     margin = min(80, max(0, block.level * 22))
 
     if kind == "blank":
         return '<div class="blank"></div>'
+
+    if kind == "markdown_paragraph_gap":
+        count = max(3, int(block.attrs.get("blank_count", 3)))
+        return (
+            f'<div class="extended-paragraph-gap" data-blank-lines="{count}" '
+            f'title="Extended paragraph break: {count} blank lines">'
+            f'<span>•&nbsp;&nbsp;•&nbsp;&nbsp;•</span></div>'
+        )
 
     if kind == "header":
         href = _copy_href(text)
@@ -102,6 +217,12 @@ def render_block(block: Block, theme: Theme, allow_online_links: bool = False) -
             return f'<div class="divider labeled"><span>{center}</span></div>'
         return '<div class="divider"></div>'
 
+    if kind == "markdown_hr":
+        return '<div class="markdown-hr"></div>'
+
+    if kind == "markdown_fenced_box":
+        return _render_fenced_box(block, theme, fancy_variant=fancy_variant)
+
     if kind == "spoken":
         return f'<p class="spoken" style="margin-left:{margin}px">{_inline_markdown(escape(text), theme)}</p>'
 
@@ -123,7 +244,7 @@ def render_block(block: Block, theme: Theme, allow_online_links: bool = False) -
         return _render_arrow(block, theme)
 
     if kind == "important":
-        body_html = _format_important_html(text)
+        body_html = _format_important_html(text, theme, block.attrs.get("line_colors"))
         arrow_count = int(block.attrs.get("arrow_count", 2))
         label = "IMPORTANT" if arrow_count == 2 else "IMPORTANT VERBATIM"
         rail = "!!   !!   !!"
@@ -143,26 +264,39 @@ def render_block(block: Block, theme: Theme, allow_online_links: bool = False) -
         cls = "md-blockquote nested" if qlevel >= 2 else "md-blockquote"
         return f'<blockquote class="{cls}" style="margin-left:{margin}px">{_inline_markdown(escape(text), theme)}</blockquote>'
 
-    if kind in {"markdown_check_item", "markdown_num_item", "markdown_money_item", "markdown_bullet_item"}:
-        labels = {
-            "markdown_check_item": "☐",
-            "markdown_num_item": "#",
-            "markdown_money_item": escape(block.attrs.get("marker", "$")),
-            "markdown_bullet_item": "+",
-        }
-        return f'<div class="md-list-item {kind}" style="margin-left:{margin}px"><span class="md-list-mark">{labels[kind]}</span> {_inline_markdown(escape(text), theme)}</div>'
+    if kind in {
+        "markdown_check_item", "markdown_num_item", "markdown_money_item", "markdown_bullet_item",
+        "markdown_dash_item", "markdown_numbered_tab", "markdown_ordered_item",
+    }:
+        if kind == "markdown_check_item":
+            label = "☑" if block.attrs.get("checked") else "☐"
+        elif kind == "markdown_num_item":
+            label = "#"
+        elif kind == "markdown_money_item":
+            label = escape(str(block.attrs.get("marker", "$")))
+        elif kind == "markdown_bullet_item":
+            label = "+"
+        elif kind in {"markdown_numbered_tab", "markdown_ordered_item"}:
+            label = f"({int(block.attrs.get('marker', 0))})"
+        else:
+            label = ""
+        no_mark = " no-mark" if kind == "markdown_dash_item" else ""
+        return (
+            f'<div class="md-list-item {kind}{no_mark}" style="margin-left:{margin}px">'
+            f'<span class="md-list-mark">{label}</span>'
+            f'<span class="md-list-text">{_inline_markdown(escape(text), theme)}</span></div>'
+        )
 
     if kind == "markdown_percent_list":
         return _render_percent_list(block, theme)
 
     if kind == "markdown_heading":
-        level = int(block.attrs.get("heading_level", 1))
-        tag = f"h{min(max(level, 1), 6)}"
-        cls = "md-heading md-caption" if level >= 6 else "md-heading"
-        return f'<{tag} class="{cls}">{_inline_markdown(escape(text), theme)}</{tag}>'
+        level = min(max(int(block.attrs.get("heading_level", 1)), 1), 6)
+        tag = f"h{level}"
+        return f'<{tag} class="md-heading md-h{level}">{_inline_markdown(escape(text), theme)}</{tag}>'
 
     if kind == "markdown_table":
-        return _render_markdown_table(text, theme)
+        return _render_markdown_table(text, theme, block.attrs.get("row_colors"))
 
     return f'<p class="plain" style="margin-left:{margin}px">{_inline_markdown(escape(text), theme)}</p>'
 
@@ -256,21 +390,66 @@ def _transition_class(text: str) -> str:
     return ""
 
 
-def _format_important_html(text: str) -> str:
+def _format_important_html(text: str, theme: Theme, line_colors: list[str | None] | None = None) -> str:
     lines = text.splitlines() or [text]
     out: list[str] = []
     for i, line in enumerate(lines):
         clean = line.strip().strip('"')
         if not clean:
             continue
-        words = clean.split()
-        if not words:
-            continue
-        line_text = escape(" ".join(words))
-        # Each important line is centered and word-spaced instead of relying on fixed screen width.
-        out.append(f'<div class="important-line important-line-{min(i, 8)}">{line_text}</div>')
+        normalized = " ".join(clean.split())
+        line_html = (
+            f'<div class="important-line important-line-{min(i, 8)}">'
+            f'{_inline_markdown(escape(normalized), theme)}</div>'
+        )
+        color = line_colors[i] if line_colors and i < len(line_colors) else None
+        out.append(_apply_color_profile(line_html, color, theme, local=True))
     return "\n".join(out) if out else '<div class="important-line"></div>'
 
+
+def _render_fenced_box(block: Block, theme: Theme, fancy_variant: int = 0) -> str:
+    info = str(block.attrs.get("fence_info") or "CODE").strip()[:40]
+    label = str(block.attrs.get("box_label") or "").strip()[:48]
+    top_label = escape(info.upper())
+    bottom_label = "```"
+    variant = " fancy-alt" if fancy_variant else ""
+    unclosed = " fancy-unclosed" if block.attrs.get("unclosed") else ""
+    margin = min(80, max(0, block.level * 22))
+    body_html = _format_fenced_body(block.text or "", theme, block.attrs.get("line_colors"))
+    nameplate = f'<div class="fancy-label">{_inline_markdown(escape(label), theme)}</div>' if label else ""
+    return f'''
+    <table class="fancy-box{variant}{unclosed}" width="100%" cellpadding="0" cellspacing="0" style="margin-left:{margin}px">
+      <tr><td class="fancy-rail" colspan="3">!!&nbsp;&nbsp;{top_label}&nbsp;&nbsp;!!</td></tr>
+      <tr>
+        <td class="fancy-side">!!</td>
+        <td class="fancy-main">{nameplate}{body_html}</td>
+        <td class="fancy-side">!!</td>
+      </tr>
+      <tr><td class="fancy-rail fancy-bottom" colspan="3">!!&nbsp;&nbsp;{bottom_label}&nbsp;&nbsp;!!</td></tr>
+    </table>'''
+
+
+def _format_fenced_body(text: str, theme: Theme, line_colors: list[str | None] | None = None) -> str:
+    lines = text.splitlines() or [text]
+    out: list[str] = []
+    for line_index, line in enumerate(lines):
+        clean = line.strip()
+        if not clean:
+            out.append('<div class="fancy-gap"></div>')
+            continue
+        list_match = re.match(r"^(?:[-+]|\d+[.)]|-#)\s+(.+)$", clean)
+        task_match = re.match(r"^-\s*\[([ xX])\]\s+(.+)$", clean)
+        if task_match:
+            mark = "☑" if task_match.group(1).lower() == "x" else "☐"
+            content = task_match.group(2)
+            line_html = f'<div class="fancy-line fancy-list"><span>{mark}</span> {_inline_markdown(escape(content), theme)}</div>'
+        elif list_match:
+            line_html = f'<div class="fancy-line fancy-list">{_inline_markdown(escape(list_match.group(1)), theme)}</div>'
+        else:
+            line_html = f'<div class="fancy-line">{_inline_markdown(escape(clean), theme)}</div>'
+        color = line_colors[line_index] if line_colors and line_index < len(line_colors) else None
+        out.append(_apply_color_profile(line_html, color, theme, local=True))
+    return "\n".join(out) if out else '<div class="fancy-line"></div>'
 
 def _render_percent_list(block: Block, theme: Theme) -> str:
     items = list(block.attrs.get("items", []))
@@ -293,39 +472,153 @@ def _render_percent_list(block: Block, theme: Theme) -> str:
         else:
             cls = "alt5" if idx % 2 == 0 else "alt4"
         width = max(2, min(100, int((pct / goal) * 100)))
-        out.append(f'<div class="md-percent-item {cls}"><span class="pct">{pct}%</span><span class="pct-label">{_inline_markdown(label, theme)}</span><span class="pct-bar"><span style="width:{width}%"></span></span></div>')
+        item_html = f'<div class="md-percent-item {cls}"><span class="pct">{pct}%</span><span class="pct-label">{_inline_markdown(label, theme)}</span><span class="pct-bar"><span style="width:{width}%"></span></span></div>'
+        out.append(_apply_color_profile(item_html, item.get("color_profile"), theme, local=True))
     out.append('</div>')
     return "\n".join(out)
 
 
-def _render_markdown_table(raw: str, theme: Theme) -> str:
-    rows = []
-    for line in raw.splitlines():
-        stripped = line.strip().strip("|")
-        cells = [escape(c.strip()) for c in stripped.split("|")]
-        if all(re.fullmatch(r":?-{3,}:?", c.strip()) for c in stripped.split("|")):
+def _split_markdown_table_cells(line: str) -> list[str]:
+    r"""Split a table row on unescaped pipes and preserve \| for inline unescape."""
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|") and not stripped.endswith("\\|"):
+        stripped = stripped[:-1]
+    cells: list[str] = []
+    current: list[str] = []
+    index = 0
+    while index < len(stripped):
+        char = stripped[index]
+        if char == "\\" and index + 1 < len(stripped) and stripped[index + 1] == "|":
+            current.extend(["\\", "|"])
+            index += 2
             continue
-        rows.append(cells)
+        if char == "|":
+            cells.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+        index += 1
+    cells.append("".join(current).strip())
+    return cells
+
+
+def _render_markdown_table(raw: str, theme: Theme, row_colors: list[str | None] | None = None) -> str:
+    rows: list[tuple[list[str], str | None]] = []
+    for line_index, line in enumerate(raw.splitlines()):
+        raw_cells = _split_markdown_table_cells(line)
+        if raw_cells and all(re.fullmatch(r":?-{3,}:?", c.strip()) for c in raw_cells):
+            continue
+        row_color = row_colors[line_index] if row_colors and line_index < len(row_colors) else None
+        rows.append(([escape(c) for c in raw_cells], row_color))
     if not rows:
         return ""
     html = ['<table class="md-table">']
-    for r, cells in enumerate(rows):
+    for r, (cells, row_color) in enumerate(rows):
         tag = "th" if r == 0 else "td"
-        html.append("<tr>" + "".join(f"<{tag}>{_inline_markdown(c, theme)}</{tag}>" for c in cells) + "</tr>")
+        row_html = "<tr>" + "".join(f"<{tag}>{_inline_markdown(c, theme)}</{tag}>" for c in cells) + "</tr>"
+        html.append(_apply_color_profile(row_html, row_color, theme, local=True))
     html.append("</table>")
     return "\n".join(html)
 
 
-def _inline_markdown(safe_text: str, theme: Theme) -> str:
-    # Input must already be HTML-escaped. Lightweight GitHub-ish inline handling for reader mode.
-    safe_text = re.sub(r"___(.+?)___", r"<u>\1</u>", safe_text)
-    safe_text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", safe_text)
-    safe_text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe_text)
-    safe_text = re.sub(r"__(.+?)__", r"<strong>\1</strong>", safe_text)
-    safe_text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", safe_text)
-    safe_text = re.sub(r"`([^`]+)`", r"<code>\1</code>", safe_text)
-    return safe_text
+def _protect_backslash_escapes(safe_text: str) -> tuple[str, list[str]]:
+    """Protect standard Markdown backslash escapes before inline styling.
 
+    ``safe_text`` has already passed through html.escape(), so five punctuation
+    characters appear as entities. Tokens are restored only after all Markdown
+    regexes run, which makes escaped markers literal and safe.
+    """
+    entity_tokens = {
+        "&quot;": "&quot;",
+        "&#x27;": "&#x27;",
+        "&amp;": "&amp;",
+        "&lt;": "&lt;",
+        "&gt;": "&gt;",
+    }
+    punctuation = set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
+    held: list[str] = []
+    out: list[str] = []
+    index = 0
+
+    def hold(value: str) -> None:
+        held.append(value)
+        out.append(f"@@SWAR_ESC{len(held) - 1}@@")
+
+    while index < len(safe_text):
+        if safe_text[index] != "\\":
+            out.append(safe_text[index])
+            index += 1
+            continue
+        if index + 1 >= len(safe_text):
+            out.append("\\")
+            index += 1
+            continue
+        matched_entity = False
+        for encoded, restored in entity_tokens.items():
+            if safe_text.startswith(encoded, index + 1):
+                hold(restored)
+                index += 1 + len(encoded)
+                matched_entity = True
+                break
+        if matched_entity:
+            continue
+        next_char = safe_text[index + 1]
+        if next_char in punctuation:
+            hold(next_char)
+            index += 2
+            continue
+        out.append("\\")
+        index += 1
+    return "".join(out), held
+
+
+def _inline_markdown(safe_text: str, theme: Theme, *, allow_links: bool = True) -> str:
+    """Render a safe, intentionally small inline Markdown subset.
+
+    Input is already HTML-escaped. Code spans are protected first so their
+    contents act as a syntax breakout and are never recursively styled.
+    """
+    code_tokens: list[str] = []
+    link_tokens: list[str] = []
+    staged, escape_tokens = _protect_backslash_escapes(safe_text)
+
+    def hold_code(match: re.Match[str]) -> str:
+        code_tokens.append(f"<code>{match.group(1)}</code>")
+        return f"@@SWAR_CODE_{len(code_tokens) - 1}@@"
+
+    staged = re.sub(r"`([^`\n]+)`", hold_code, staged)
+
+    if allow_links:
+        def hold_link(match: re.Match[str]) -> str:
+            label = _inline_markdown(match.group(1), theme, allow_links=False)
+            raw_url = unescape(match.group(2).strip())
+            normalized = "https://" + raw_url if raw_url.lower().startswith("www.") else raw_url
+            if not re.match(r"^https?://", normalized, re.IGNORECASE):
+                return match.group(0)
+            href = _copy_href(normalized)
+            link_tokens.append(
+                f'<a class="inline-copy-link" href="{href}" title="Click to copy link">{label}</a>'
+            )
+            return f"@@SWAR_LINK_{len(link_tokens) - 1}@@"
+        staged = re.sub(r"\[([^]\n]+)\]\(((?:https?://|www\.)[^\s)]+)\)", hold_link, staged, flags=re.IGNORECASE)
+
+    staged = re.sub(r"___(.+?)___", r"<u>\1</u>", staged)
+    staged = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", staged)
+    staged = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", staged)
+    staged = re.sub(r"__(.+?)__", r"<strong>\1</strong>", staged)
+    staged = re.sub(r"~~(.+?)~~", r"<del>\1</del>", staged)
+    staged = re.sub(r"(?<!~)~(?!~)(.+?)(?<!~)~(?!~)", r"<del>\1</del>", staged)
+    staged = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", staged)
+
+    for index, value in enumerate(link_tokens):
+        staged = staged.replace(f"@@SWAR_LINK_{index}@@", value)
+    for index, value in enumerate(code_tokens):
+        staged = staged.replace(f"@@SWAR_CODE_{index}@@", value)
+    for index, value in enumerate(escape_tokens):
+        staged = staged.replace(f"@@SWAR_ESC{index}@@", value)
+    return staged
 
 def _html_head(theme: Theme, title: str) -> str:
     return f'''<!doctype html>
@@ -340,6 +633,14 @@ body {{
   margin: 18px 24px;
 }}
 .blank {{ height: 12px; }}
+.extended-paragraph-gap {{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  min-height:72px; margin:18px 8%; color:{theme.muted}; opacity:0.78;
+}}
+.extended-paragraph-gap::before, .extended-paragraph-gap::after {{
+  content:""; flex:1; border-top:1px dashed {theme.border};
+}}
+.extended-paragraph-gap span {{ font-size:16px; letter-spacing:5px; color:{theme.highlight3}; }}
 .header-card {{
   border: 3px solid {theme.border};
   background: {theme.panel};
@@ -362,6 +663,7 @@ a:hover {{ text-decoration: underline; }}
 .divider {{ display:flex; align-items:center; text-align:center; margin: 22px 0; color:{theme.muted}; }}
 .divider::before, .divider::after {{ content:""; flex:1; border-bottom: 5px solid {theme.border}; }}
 .divider span {{ padding: 0 14px; font-weight:900; color:{theme.highlight}; }}
+.markdown-hr {{ height:0; border:0; border-top:4px double {theme.highlight3}; margin:26px 5%; }}
 .legacy-label {{ font-weight:900; color:{theme.title}; border-bottom:2px solid {theme.border}; padding-top:12px; font-size:22px; }}
 .source-pre-gap {{ height: 38px; }}
 .source-next-gap {{ height: 78px; }}
@@ -401,16 +703,39 @@ a:hover {{ text-decoration: underline; }}
 .important-line-1 {{ padding-left: 12px; }}
 .important-line-2 {{ padding-left: 24px; }}
 .important-line-3 {{ padding-left: 36px; }}
+.fancy-box {{ border: 4px solid {theme.highlight3}; background:{theme.panel}; border-radius:14px; padding:8px; margin-top:18px; margin-bottom:22px; color:{theme.text}; }}
+.fancy-box.fancy-alt {{ border-color:{theme.highlight4}; }}
+.fancy-box.fancy-unclosed {{ border-style:dashed; }}
+.fancy-side {{ font-size:34px; color:{theme.highlight3}; font-weight:900; text-align:center; vertical-align:middle; width:42px; }}
+.fancy-alt .fancy-side, .fancy-alt .fancy-rail {{ color:{theme.highlight4}; }}
+.fancy-rail {{ font-size:20px; color:{theme.highlight3}; font-weight:900; text-align:center; letter-spacing:5px; padding:3px 0; }}
+.fancy-bottom {{ font-family:"DejaVu Sans Mono", monospace; }}
+.fancy-main {{ text-align:center; padding:8px 14px; }}
+.fancy-label {{ display:inline-block; color:{theme.highlight3}; border:2px solid {theme.highlight3}; border-radius:9px; padding:4px 12px; margin:2px auto 12px auto; font-weight:900; }}
+.fancy-alt .fancy-label {{ color:{theme.highlight4}; border-color:{theme.highlight4}; }}
+.fancy-line {{ text-align:center; color:{theme.text}; font-size:19px; line-height:1.7; margin:5px 0; }}
+.fancy-list {{ padding:5px 10px; border-left:4px solid {theme.highlight3}; background:{theme.bg}; }}
+.fancy-gap {{ height:10px; }}
 .down-arrows {{ text-align:center; color:{theme.highlight}; font-size:30px; letter-spacing: 6px; font-weight:900; margin: 2px 0 18px 0; }}
-.md-heading {{ color:{theme.markdown_heading}; border-bottom: 2px solid {theme.border}; padding-bottom: 5px; }}
+.md-heading {{ color:{theme.markdown_heading}; font-weight:900; line-height:1.22; }}
+.md-h1 {{ text-align:center; font-size:36px; border:3px solid {theme.highlight3}; background:{theme.panel}; border-radius:12px; padding:14px 18px; margin:30px 0 22px; }}
+.md-h2 {{ font-size:32px; border-left:9px solid {theme.highlight3}; border-bottom:3px solid {theme.border}; padding:8px 14px; margin:26px 0 18px; }}
+.md-h3 {{ font-size:28px; border-bottom:3px double {theme.border}; padding:6px 8px; margin:23px 0 16px; }}
+.md-h4 {{ font-size:24px; border-left:5px solid {theme.highlight4}; padding:5px 10px; margin:20px 0 14px; }}
+.md-h5 {{ font-size:21px; color:{theme.highlight2}; letter-spacing:0.6px; margin:18px 0 12px; }}
+.md-h6 {{ text-align:right; font-size:17px; color:{theme.muted}; border-bottom:1px dotted {theme.border}; padding-bottom:4px; margin:16px 0 10px; font-style:italic; }}
 .md-table {{ margin: 18px auto; border-collapse: collapse; color:{theme.text}; background:{theme.panel}; }}
 .md-table th, .md-table td {{ border: 1px solid {theme.markdown_table}; padding: 8px 12px; }}
 .md-table th {{ color:{theme.markdown_table}; font-weight:900; }}
-.md-caption {{ text-align:right; font-size:14px; color:{theme.muted}; border-bottom:0; font-style:italic; }}
 .md-blockquote {{ border-left: 8px solid {theme.highlight}; background:{theme.panel}; margin: 18px auto; padding: 14px 18px; max-width: 86%; border-radius: 0 12px 12px 0; color:{theme.text}; }}
 .md-blockquote.nested {{ border-left-color:{theme.highlight4}; margin-left: 48px; max-width: 80%; }}
 .md-list-item {{ background:{theme.panel}; border-left:5px solid {theme.highlight5}; margin:8px 0; padding:8px 12px; border-radius: 0 10px 10px 0; }}
-.md-list-mark {{ color:{theme.highlight}; font-weight:900; display:inline-block; min-width: 32px; }}
+.md-list-mark {{ color:{theme.highlight}; font-weight:900; display:inline-block; min-width: 42px; }}
+.md-list-text {{ display:inline; }}
+.md-list-item.no-mark {{ border-left-color:{theme.border}; margin-bottom:16px; }}
+.md-list-item.no-mark .md-list-mark {{ min-width:14px; }}
+.markdown_numbered_tab {{ margin-bottom:16px; border-left-color:{theme.highlight4}; }}
+.markdown_ordered_item {{ border-left-color:{theme.highlight3}; }}
 .markdown_num_item .md-list-mark {{ color:{theme.highlight4}; }}
 .markdown_money_item .md-list-mark {{ color:{theme.fade_green1}; }}
 .markdown_bullet_item .md-list-mark {{ color:{theme.fade_purple1}; }}
@@ -426,6 +751,8 @@ a:hover {{ text-decoration: underline; }}
 strong {{ font-weight: 1000; color:{theme.title}; }}
 em {{ color:{theme.highlight}; }}
 u {{ text-decoration: underline; text-decoration-thickness: 2px; color:{theme.highlight2}; }}
+del {{ text-decoration: line-through; text-decoration-thickness:2px; color:{theme.muted}; }}
+.inline-copy-link {{ color:{theme.link}; border-bottom:1px dotted {theme.link}; cursor:pointer; }}
 code {{ background:{theme.bg}; color:{theme.highlight}; padding:2px 5px; border-radius:4px; }}
 .warnings {{ border:2px solid #cc0000; color:#ff6666; padding:10px; margin:16px 0; }}
 </style></head><body>'''
