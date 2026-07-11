@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import sys
 from urllib.parse import unquote
 
@@ -111,7 +112,14 @@ if _PYSIDE_IMPORT_ERROR is None:
             self.f_secret = self._fmt(theme.muted, italic=True)
             self.f_quote = self._fmt(theme.text)
             self.f_markdown = self._fmt(theme.markdown_heading, bold=True)
+            self.f_heading_levels = []
+            for point_size in (20, 18, 16, 15, 14, 13):
+                heading_fmt = self._fmt(theme.markdown_heading, bold=True)
+                heading_fmt.setFontPointSize(point_size)
+                self.f_heading_levels.append(heading_fmt)
             self.f_markdown2 = self._fmt(theme.fade_green1, bold=True)
+            self.f_color_profile = self._fmt(theme.highlight3, bold=True)
+            self.f_color_escape = self._fmt(theme.muted, italic=True)
             self.f_comment = self._fmt(theme.muted, italic=True)
             self.f_spell = QTextCharFormat()
             self.f_spell.setUnderlineColor(QColor(theme.important))
@@ -141,6 +149,12 @@ if _PYSIDE_IMPORT_ERROR is None:
             if lower.startswith(("url:", "key:", "chat token:", "meta data:")):
                 self.setFormat(0, len(text), self.f_secret)
                 return
+            heading_match = re.match(r"^\s{0,3}(#{1,6})\s+", text)
+            heading_applied = False
+            if heading_match:
+                level = min(6, len(heading_match.group(1)))
+                self.setFormat(0, len(text), self.f_heading_levels[level - 1])
+                heading_applied = True
             if stripped.startswith(("http://", "https://", "www.")) or stripped.startswith("- http") or stripped.startswith("- www"):
                 self.setFormat(0, len(text), self.f_source)
             if stripped.startswith("!") and ("http://" in stripped or "https://" in stripped):
@@ -160,7 +174,6 @@ if _PYSIDE_IMPORT_ERROR is None:
                 self.setFormat(0, len(text), self.f_divider)
             arrow_match = None
             if stripped.startswith(">"):
-                import re
                 arrow_match = re.match(r"^(>+)", stripped)
             if arrow_match and "<<" in stripped:
                 self.setFormat(0, len(text), self._arrow_format(len(arrow_match.group(1))))
@@ -168,14 +181,25 @@ if _PYSIDE_IMPORT_ERROR is None:
                 self.setFormat(0, len(text), self.f_important)
             if stripped.startswith("!!") or stripped.endswith("!!<<") or stripped.endswith("!!<<<"):
                 self.setFormat(0, len(text), self.f_important)
+            if stripped.startswith("```"):
+                self.setFormat(0, len(text), self.f_important)
             if stripped.startswith('"') or stripped.endswith('"'):
                 if "!!" not in stripped and not stripped.startswith(">"):
                     self.setFormat(0, len(text), self.f_quote)
-            for marker in ("***", "**", "___", "__", "#", "|", "- [ ]", "- [x]", "- [#]", "- [$]", "- [%", "> ", ">>"):
-                pos = text.find(marker)
-                if pos >= 0:
-                    self.setFormat(pos, min(len(text) - pos, max(2, len(marker) + 80)), self.f_markdown)
-                    break
+            if not heading_applied:
+                for marker in ("```", "~~", "`", "[", "](", "-# ", "***", "**", "___", "__", "#", "|", "- [ ]", "- [x]", "- [#]", "- [$]", "- [%", "> ", ">>"):
+                    pos = text.find(marker)
+                    if pos >= 0 and not (pos > 0 and text[pos - 1] == "\\"):
+                        self.setFormat(pos, min(len(text) - pos, max(2, len(marker) + 80)), self.f_markdown)
+                        break
+            color_token = r"(?:\[#[0-9A-Fa-f]{3,8}\]|\((?:rgba?)\([^()\n]*\)\))"
+            escaped_color = re.search(r"\\`!\s*" + color_token + r"\s*$", text, re.IGNORECASE)
+            active_color = re.search(color_token + r"\s*$", text, re.IGNORECASE)
+            if escaped_color:
+                self.setFormat(escaped_color.start(), len(text) - escaped_color.start(), self.f_color_escape)
+            elif active_color:
+                self.setFormat(active_color.start(), len(text) - active_color.start(), self.f_color_profile)
+
             if self.spell_enabled and self.spell_checker is not None:
                 for start, length, _word in self.spell_checker.iter_unknown(text):
                     self.setFormat(start, length, self.f_spell)
@@ -265,6 +289,7 @@ class SwarTab(QWidget):
         self.state = state
         self.parser = SwarParser()
         self._syncing_scroll = False
+        self._last_render_key: tuple[str, str, bool, str] | None = None
         # Some Qt/PySide6 builds emit textChanged while a syntax highlighter is
         # attached or rehighlighted, even before the file text has been loaded.
         # Suppress those setup-only signals so an opened file cannot be cleared
@@ -317,6 +342,7 @@ class SwarTab(QWidget):
 
     def set_text(self, text: str, from_file: bool = False) -> None:
         self.state.text = text
+        self._last_render_key = None
         self.editor.blockSignals(True)
         self.editor.setPlainText(text)
         self.editor.blockSignals(False)
@@ -331,6 +357,15 @@ class SwarTab(QWidget):
 
     def parse_and_render(self) -> None:
         text = self.current_text()
+        render_key = (
+            text,
+            self.shell.theme_name,
+            self.state.network_mode == "online",
+            self.state.path or "",
+        )
+        if render_key == self._last_render_key and self.state.doc is not None:
+            self.shell.update_footer()
+            return
         self.state.doc = self.parser.parse(text, path=self.state.path or "")
         html = render_doc_html(
             self.state.doc,
@@ -338,6 +373,7 @@ class SwarTab(QWidget):
             allow_online_links=self.state.network_mode == "online",
         )
         self.reader.setHtml(html)
+        self._last_render_key = render_key
         QTimer.singleShot(0, self.sync_scroll_range)
         self.shell.update_footer()
 
