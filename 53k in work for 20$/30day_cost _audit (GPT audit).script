@@ -1,0 +1,295 @@
+# 30-day work and value audit
+
+>> Overview <<
+
+Across the **19 shared conversations plus this audit**, central estimate:
+
+  * **367 user prompts**, with a reasonable range of **292–454** in-total prompts
+  * **291 major deliverable units**: substantial features, fixes, subsystems, release tools, test suites, or documentation packages
+  * Approximately **948 hours of conventional replacement labor**
+  * Approximately **$52,970 in wage-equivalent replacement value**
+  * Plausible range: **750–1,150 hours** and roughly **$42,000–$64,000**
+  * Actual ChatGPT subscription expense: approximately **$20**
+  * Effective subscription cost: **5.45¢ per prompt**
+  * Effective subscription cost: **6.87¢ per major deliverable**
+  * Replacement-value-to-subscription ratio: approximately **2,649:1**
+
+    The **948 hours are not literal elapsed hours spent during the month**. They represent how long a conventional mixture of developers, QA testers, release engineers, and technical writers might take to reproduce the delivered work. Lower-confidence estimate is roughly **140–230 active hours**, centered around **185 hours**, including prompting, local testing, copying patches, troubleshooting, reviewing output, and uploading releases.
+
+
+>> Important Notes <<
+
+  ChatGPT shared links normally contain a snapshot of a conversation through the point at which it was shared. The underlying artifacts substantiate that these were not merely plans. 
+
+    * CryptoChess has extensive randomized, security, GUI, recovery, and release-candidate test records, as well as a finished multi-container release and operator workflow.   
+    * Bitninja includes service modes, audio lip assist, eye tracking, presets, launcher work, release documentation, doctors, and GitHub packaging.  
+    * Deck Card Widget includes separate controller/output windows, storage formats, editable display content, image/text layers, OBS support, and cross-platform setup documentation.  
+    * SWAR and Streamer Board Console also have concrete automated and local acceptance suites.  
+
+
+
+>> Per-app work, prompt use, time, and cost <<
+
+  “Major units” deliberately do not count every button, field, test assertion, or minor style adjustment separately. One unit represents a meaningful feature, subsystem, repair, release tool, validation suite, or complete documentation deliverable.
+
+###### *C/Q/N hours* means *code implementation / QA-debugging / non-code work*. 
+
+| App or workstream                                          | Estimated prompts | Major units | Units per prompt |         C/Q/N hours | Total hours | Labor value | Share of $20 | Cost per unit |
+| ---------------------------------------------------------- | ----------------: | ----------: | ---------------: | ------------------: | ----------: | ----------: | -----------: | ------------: |
+| **CryptoChess**                                            |               132 |          74 |             **0.56** |       145 / 75 / 50 |     **270** | **$15,181** |        $5.70 |        **$0.077** |
+| **PQC Scout-Knife**                                        |                17 |          16 |             **0.94** |        35 / 18 / 12 |      **65** |  **$3,656** |        $1.37 |        **$0.086** |
+| **Bitninja Mocap Lite**                                    |                65 |          39 |             **0.60** |        65 / 32 / 23 |     **120** |  **$6,751** |        $2.53 |        **$0.065** |
+| **3DCP / Deck Card Widget**                                |                57 |          46 |             **0.81** |        78 / 38 / 29 |     **145** |  **$8,143** |        $3.06 |        **$0.067** |
+| **SWAR**                                                   |                33 |          41 |         **1.24** |        55 / 26 / 24 |     **105** |  **$5,859** |        $2.22 |    **$0.054** |
+| **Streamer Board & Console**                               |                49 |          52 |         **1.06** |        80 / 40 / 30 |     **150** |  **$8,414** |        $3.16 |        **$0.061** |
+| **G502V**                                                  |                 5 |           7 |             **1.40** |          10 / 7 / 3 |      **20** |  **$1,117** |        $0.42 |        **$0.060** |
+| **Soundcard**                                              |                 5 |           7 |             **1.40** |           9 / 6 / 3 |      **18** |  **$1,004** |        $0.38 |    **$0.054** |
+| **Cross-app work, research, documentation and this audit** |                 4 |           9 |            **2.25** |        18 / 12 / 25 |      **55** |  **$2,845** |        $1.16 |        **$0.129** |
+| **Total**                                                  |           **367** |     **291** |         **0.79** | **495 / 254 / 199** |     **948** | **$52,970** |   **$20.00** |    **$0.069** |
+
+    *The cross-app row is not directly comparable. 
+
+  The $20 allocation is proportional to estimated replacement hours. It is an accounting view of how the subscription expense could be distribute, not a claim about OpenAI’s internal compute expense. 
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+# Which application produced the most?
+
+
+
+>> Most total functionality: CryptoChess <<
+
+## CryptoChess has the **largest absolute body of work**:
+
+  * **132 prompts**
+  * Approximately **74 major deliverable units**
+  * Approximately **270 replacement hours**
+  * Approximately **$15,181 of labor-equivalent value**
+
+     That includes gameplay repair, three-mode testing, PQC asset/container restructuring, state handling, release doctors, manifests, migration and compatibility work, Asset Manager GUI/CLI workflows, packaging, privacy audits, release sealing, operator documentation, and extensive automated acceptance coverage. 
+
+    CryptoChess did not win efficiency per prompt because many prompts were deliberately consumed by staged verification, regression testing, repair iterations, and release hardening. That makes its prompt ratio lower but its overall product depth much greater. 
+
+
+
+>> Best feature yield among substantial applications: SWAR <<
+
+## SWAR produced the **highest number of major functions per prompt**:
+
+  * **41 units from approximately 33 prompts**
+  * **1.24 units per prompt**
+  * Approximately **$0.054 of subscription allocation per unit**
+  * Approximately **$5,859 in replacement value**
+
+    SWAR benefited from tightly grouped updates where one prompt could produce parser changes, reader behavior, compatibility preservation, updater logic, tests, and documentation together. Its validation includes fancy boxes, numbered tabs, lists, links, code handling, private-header masking, legacy compatibility, backup creation, compilation, user-data preservation, and repo-safety checks. 
+
+
+
+>> Second-best substantial-app efficiency: Streamer Board & Console <<
+
+## Streamer Board & Console **produced**:
+
+  * **52 major units from approximately 49 prompts**
+  * **1.06 units per prompt**
+  * Approximately **$0.061 per unit**
+  * Approximately **$8,414 in replacement value**
+
+    It combined new-app construction with integration of several existing apps, process monitoring, adapter controls, profiles, Pin Boards, OBS-stable identities, tabs and breakout controllers, state swapping, memory-preserving restart behavior, migration, public export, and desktop grouping.
+
+    Its acceptance plan alone verifies stable OBS slots, sticker persistence, controller tabs, stale cleanup, state swaps without losing capture, Kill w/Mem continuity, migration, and public-data exclusion.  Cross-application desktop identity tooling also covers eight launcher identities. 
+
+
+
+>> Highest raw ratios: G502V and Soundcard <<
+
+## G502V and Soundcard each cost **1.40 units per prompt**, as **small, narrowly focused workstreams**:
+
+  * Fix one high-impact threading/resource problem.
+  * Add integration support.
+  * Add launcher, icon, venv, and logging behavior.
+  * Verify the app still runs.
+
+    The G502V repair moved Tk updates back onto the main thread, bounded event processing, and retained only the newest mouse position to prevent input backlogs under load.  Soundcard gained a complete venv-aware desktop launcher, icon installation, logging, and KDE cache refresh. 
+
+    They are excellent prompt-efficiency results, but it would be misleading to place five-prompt repairs above entire applications solely because of the ratio.
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+>> Prompt estimate by shared conversation <<
+
+
+|  # | Conversation                     |  Estimated user prompts |
+| -- | -------------------------------- | ----------------------  |
+|  1 | CryptoChess Bug Fixes           |    **39** - range 32–48 |
+|  2 | CryptoChess Analysis and Report  |    **26** - range 21–32 |
+|  3 | CryptoChess Developer Handoff   |     **12** - range 9–15 |
+|  4 | CryptoChess PQC Restructure      |    **24** - range 19–30 |
+|  5 | PQC System Cryptographic Upgrade |    **31** - range 25–38 |
+|  6 | PQC Scout-Knife Update Plan      |    **17** - range 13–21 |
+|  7 | SysMoCap Optimization Tips      |    **31** - range 25–38 |
+|  8 | 3DCP Console MVP Setup           |    **33** - range 27–41 |
+|  9 | Launch Apps in Terminals         |                   **3** |
+| 10 | Deck Card Widget Update          |     **12** - range 9–15 |
+| 11 | Service Update Plan              |    **29** - range 23–36 |
+| 12 | Kubuntu Program Launcher Setup   |    **17** - range 13–21 |
+| 13 | SWAR Script Editor Design        |    **21** - range 17–26 |
+| 14 | G502V Soundcard Issue Fix        |       **5** - range 4–7 |
+| 15 | GitHub Repo Grouping             |       **2** - range 1–3 |
+| 16 | Streamer Board & Console        |    **35** - range 28–43 |
+| 17 | Debugging Custom Profiles        |     **10** - range 8–13 |
+| 18 | Pin Board Update v0.4.9          |    **18** - range 14–23 |
+| 19 | Hex Color Code Explanation       |                   **1** |
+| -- | -------------------------------- | ----------------------  |
+|    | **Shared-link subtotal**         | **366 - range 292–454** |
+| -- | -------------------------------- | ----------------------  |
+|    | This work-and-value audit        |                   **1** |
+| -- | -------------------------------- | ----------------------  |
+| GT | **Grand total**                  |         **367 prompts** |
+
+###### A “prompt” here means one user message, regardless of its length. Some of the prompts contained a complete terminal transcript, several requested changes, test results, and authorization to begin another stage. Those still count as one prompt, which partly explains the unusually high output per prompt. <<<<
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+>> Code, QA, and non-code totals <<
+
+## **Conservative employee wage equivalents were used rather than agency or senior-contractor billing rates**:
+
+  * Software development: approximately **$63.98/hour**
+  * Software QA/testing: approximately **$49.33/hour**
+  * Technical writing and related documentation: approximately **$44.07/hour**
+
+   ###### These correspond to May 2024 U.S. Bureau of Labor Statistics median wages of $133,080 for software developers, $102,610 for software QA analysts/testers, and $91,670 for technical writers. [Bureau of Labor Statistics](https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm) [1]
+
+| Work classification                                       | Estimated hours | Percentage of hours | Estimated value |
+| --------------------------------------------------------- | --------------: | ------------------: | --------------: |
+| **Feature and implementation code**                       |         **495** |               52.2% |     **$31,670** |
+| **QA, debugging, regression, integration and acceptance** |         **254** |               26.8% |     **$12,530** |
+| **Pure non-code work**                                    |         **199** |               21.0% |      **$8,770** |
+| **Total**                                                 |         **948** |                100% |     **$52,970** |
+
+    QA is separated rather than hidden under coding. Some QA deliverables contain test scripts, but their economic purpose is validation, diagnosis, regression prevention, and release confidence rather than adding user-facing functionality.
+
+    When QA and pure non-code work are combined, **453 hours—47.8% of the work—was supporting engineering rather than direct feature implementation**, worth approximately **$21,300**.
+
+
+
+>> Non-code work determination <<
+
+| Non-code category                             |   Hours | Estimated value | Examples                                                                                                           |
+| --------------------------------------------- | ------: | --------------: | ------------------------------------------------------------------------------------------------------------------ |
+| Requirements discovery and architecture       |      55 |         ~$2,424 | Translating ideas into staged designs, selecting low-resource approaches, identifying dependencies and constraints |
+| Documentation and developer handoffs          |      54 |         ~$2,380 | Operator guides, READMEs, launch instructions, next-developer context, command references                          |
+| Release, repository and privacy planning      |      38 |         ~$1,675 | GitHub upload surfaces, clean exports, repo-safe paths, private-state exclusions, release checklists               |
+| Troubleshooting and user-operating support    |      30 |         ~$1,322 | Terminal interpretation, installation steps, venv guidance, desktop launcher instructions                          |
+| Research, inventory, education and this audit |      22 |           ~$970 | Repository grouping, feature inventories, hex-color education, valuation and prompt analysis                       |
+| **Pure non-code total**                       | **199** |     **~$8,770** |                                                                                                                    |
+
+   ###### This non-code output is materially valuable. For example, CryptoChess’s operator guide does not simply describe the project: it documents verified release files, container roles, private-state exclusions, Linux/Windows/macOS/Arch launch paths, smoke tests, manager commands, privacy audits, and final release-doctor behavior.  Bitninja’s release work includes safe cleanup, branch-upload packaging, exclusion rules, launcher notes, and operational documentation in addition to the service code. 
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+>> Economic interpretation of the $20 <<
+
+## **Using the central estimates**:
+
+  * **Subscription expense per prompt:** $20 ÷ 367 = **$0.0545**
+  * **Subscription expense per major unit:** $20 ÷ 291 = **$0.0687**
+  * **Replacement value per prompt:** $52,970 ÷ 367 = approximately  **$144** 
+  * **Replacement value per major unit:** $52,970 ÷ 291 = approximately **$182**
+  * **Replacement-value ratio:** $52,970 ÷ $20 = approximately **2,649×**
+
+
+
+   ## **This does *not* mean the work was literally free except for $20. User contribution included**:
+
+  * Product invention and requirements
+  * Supplying existing source code
+  * Running commands and tests locally
+  * Reporting screenshots and terminal output
+  * Identifying regressions
+  * Making GitHub uploads
+  * Maintaining the hardware and development environment
+  * Deciding whether behavior was correct
+  * Accepting or rejecting designs
+
+
+
+   >> It also does not establish a resale valuation of $52,970. A product’s sale price depends on ownership clarity, licensing, market demand, maintenance quality, security review, documentation, user adoption, and revenue potential. <<
+
+
+
+    For cryptographic work specifically, the estimate values **software implementation, packaging, test construction, documentation, and engineering effort**. It is not a claim that the custom cryptographic designs have received independent academic review, formal verification, or a professional security audit.
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+>> Final ranking <<
+
+## By total work and functionality:
+
+  1. **CryptoChess**
+  2. **Streamer Board & Console**
+  3. **3DCP / Deck Card Widget**
+  4. **SWAR**
+  5. **Bitninja Mocap Lite**
+  6. **PQC Scout-Knife**
+  7. **G502V**
+  8. **Soundcard**
+
+
+
+## By major feature efficiency among substantial apps:
+
+  1. **SWAR — 1.24 units per prompt**
+  2. **Streamer Board & Console — 1.06**
+  3. **PQC Scout-Knife — 0.94**
+  4. **3DCP / Deck Card Widget — 0.81**
+  5. **Bitninja Mocap Lite — 0.60**
+  6. **CryptoChess — 0.56**
+
+
+
+## Best overall app obtaining the most functions for its prompts and cost:
+
+  * **Most total functionality:** CryptoChess
+  * **Best prompt and cost efficiency among full-sized apps:** SWAR
+  * **Best combination of new-app breadth and prompt efficiency:** Streamer Board & Console
+  * **Highest small-task efficiency:** G502V and Soundcard
+  * **Largest non-code/release-engineering value:** CryptoChess, followed by Streamer Board Console and Bitninja
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+   # At a central replacement value of roughly **$53,000 for a $20 subscription expense**, the month produced an exceptionally large amount of practical development, validation, release, integration, and documentation output—even after applying conservative counting rules and excluding button-level work as separate features.
+
+
+
+###### .. <<<<<< [#000000]
+
+
+
+```credit
+[1]: https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm
+```
