@@ -1,0 +1,84 @@
+SWAR Extended Markdown:: v0.7.0-rc1-r4 Acceptance Example
+URL: rtmp://private-example
+KEY: private-example
+
+# H1 — Main Heading
+## H2 — Major Section
+### H3 — Section
+#### H4 — Subsection
+##### H5 — Small Heading
+###### H6 — Caption Heading
+
+
+
+The three blank rows above render as one extended paragraph separator.
+
+"Spoken **bold**, *italic*, ___underlined___, ~~struck~~, and `*literal*` text."
+
+>> Arrow with **rich text** and [copy link](https://example.com/arrow) <<
+
+>>!!
+"Important **bold** and ~~struck~~ text with `literal *markers*`."
+!! !! !!<<
+
+```text
+[Data3]
+**Fancy title**
+Some *rich* ___underlined___ and ~~struck~~ content.
+- [x] completed task
+- nested-looking line
+```
+
+```json
+[Payload]
+`{"safe": true}` and [copy docs](https://example.com/docs)
+```
+
+- ordinary no-link list text
+- Review the README.md before launch
+  - nested no-link list text
+  -# first automatic numbered item
+  -# second automatic numbered item
+    -# 12 explicit nested number
+1. standard ordered item
+- [ ] open task
+- [x] finished task
+
+***
+
+\# This prints as a literal heading marker.
+\- This prints as a literal dash marker.
+\> This prints as a literal quote marker.
+Escaped \*star\*, \_underscore\_, \~strike\~, \`code\`, \[label\]\(url\), and \\ backslash.
+
+| Column A | Column B |
+|---|---|
+| escaped x \| y | normal z |
+
+- https://example.com/source
+- ../local-demo.pdf
+
+
+--- OPTIONAL COLOR PROFILES ---
+
+# Hex-colored heading [#4fd1ff]
+"Spoken line with RGBA color" (rgba(255, 130, 40, 0.90))
+>> COLORED ARROW WITH **RICH TEXT** << [#d66cff]
+  - nested colored item (rgb(70, 210, 120))
+
+```text [#4a90e2]
+[Whole Box Color]
+This line inherits the box color.
+This line overrides it locally. [#ffcc33]
+```
+
+>>!!
+This important line has its own color. (rgb(255, 90, 90))
+The closing suffix colors the complete important object.
+!! !! !!<< [#d05cff]
+
+| Colored table A | Colored table B |
+|---|---|
+| row-local color | value | [#30c878]
+
+Literal profile examples: \`! [#4fd1ff] and \`!(rgba(255, 130, 40, 0.90))
