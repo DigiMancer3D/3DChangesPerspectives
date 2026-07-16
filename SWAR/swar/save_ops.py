@@ -7,7 +7,8 @@ from pathlib import Path
 from .parser import ScriptDoc
 from .outline import outline_path_for
 
-SUPPORTED_SAVE_EXTS = {"script", "md", "txt"}
+
+SUPPORTED_SAVE_EXTS = {"script", "md", "txt", "arcs"}
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ SAVE_CHOICES: dict[str, SaveChoice] = {
     "save_script": SaveChoice("SAVE SCRIPT", "script", False),
     "save_marked": SaveChoice("SAVE MARKED", "md", False),
     "save_text": SaveChoice("SAVE TEXT", "txt", False),
+    "save_arcs": SaveChoice("SAVE STORY", "arcs", False),
 }
 
 
@@ -50,7 +52,10 @@ def with_extension(path: str | Path, extension: str | None) -> Path:
         if p.suffix:
             return p
         return p.with_suffix(".script")
-    return p.with_suffix("." + extension.lstrip("."))
+    ext = extension.lstrip(".")
+    if ext not in SUPPORTED_SAVE_EXTS:
+        ext = "script"
+    return p.with_suffix("." + ext)
 
 
 def resolve_save_path(
@@ -58,12 +63,7 @@ def resolve_save_path(
     requested_extension: str | None,
     fallback_directory: str | Path = ".",
 ) -> Path:
-    """Resolve a non-dialog save path.
-
-    Save Now reuses the current file path if present. Typed save actions reuse the current
-    stem but force the requested extension. Untitled/cancel fallback becomes a timestamped
-    SWAR_autosave file.
-    """
+    """Resolve a non-dialog save path for all SWAR-authored file types."""
     if current_path:
         return with_extension(current_path, requested_extension)
     ext = requested_extension or "script"
@@ -73,15 +73,19 @@ def resolve_save_path(
 def section_for_scroll(doc: ScriptDoc | None, percent: int) -> str:
     if not doc or not doc.blocks:
         return "none"
-    real_blocks = [b for b in doc.blocks if b.kind != "blank"]
+    real_blocks = [block for block in doc.blocks if block.kind != "blank"]
     if not real_blocks:
         return doc.header_first_line[:64]
     idx = min(len(real_blocks) - 1, max(0, int((percent / 100) * len(real_blocks))))
     current = real_blocks[idx]
     section = doc.header_first_line
-    for b in real_blocks[: idx + 1]:
-        if b.kind in {"header", "divider", "legacy_label", "arrow_title", "arrow_descriptor", "arrow_major_explainer"}:
-            section = b.text or b.attrs.get("center_text", "section") or "section"
+    section_kinds = {
+        "header", "divider", "legacy_label", "arrow_title", "arrow_descriptor",
+        "arrow_major_explainer", "attention_red", "arc_record",
+    }
+    for block in real_blocks[: idx + 1]:
+        if block.kind in section_kinds:
+            section = block.text or block.attrs.get("center_text", "section") or "section"
     if current.kind == "source":
         section = "Source"
     return section[:72]
