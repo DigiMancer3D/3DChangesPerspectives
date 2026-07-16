@@ -1,46 +1,187 @@
-3D Changes Perspectives:: SWAR Test Episode: Reader Parser MVP
+3D Changes Perspectives:: SWAR v0.7.1-rc1-r3 Starter Example
 
-URL: rtmp://example.invalid/live
-KEY: fake-private-key
-CHAT TOKEN: https://example.invalid/chat-token
-META DATA: tags=swar,test
+URL: https://example.invalid/private-stream-page
+KEY: private-example-value
+META DATA: starter, training, public-safe
 
-!!!!!!!!!!!!!!!!!   REPO at ending song   !!!!!!!!!!!!!!!!!
+>>>> WELCOME TO SWAR <<<<
 
-"Welcome into the Photon of the Greater 4th Dimension Quantum Machine!"
+"This file is a quick tour of the most useful *.script features. Open it in Split mode to compare the source with the Reader output."
 
---- OPENING SECTION ---
+--- FAST START ---
 
->>>>PLAY SHOW INTRO<<<<
++ Write ordinary paragraphs normally.
++ Put spoken or teleprompter text inside quotes.
++ Use the arrow-title marks to make clear sections.
++ Use the editor dropdowns instead of memorizing every mark.
++ Open Tools for Find, Spell Check, Linked Scrolling, Teleprompter, Help, and Clean Start.
 
-- https://presearch.com/search?q=swar+script+markup
+>>>> READER / EDITOR / SPLIT / STORY <<<<
 
-  "Today's free Presearch query is shown here so the audience can follow along later."
+| Mode | Best use |
+| --- | --- |
+| Reader | Clean formatted reading output; editing buttons are hidden |
+| Editor | Source-only writing and quick edits |
+| Split | Source and formatted output together |
+| Story | Editing *.arcs records with Arc-specific insert buttons |
 
-  >>> READ QUERY TEXT <<<
+"An *.arcs file still renders in Reader and Split modes. The Arc insert buttons only appear while the active tab is in Story mode."
 
-  >>>>>> EXPLAIN WHY THIS TOOL EXISTS <<<<<<
+>>>> CLASSIC SCRIPT MARKS <<<<
+
+>> Data or compact cue <<
+
+>>> Verbatim or spoken cue <<<
+
+>>>> Section title <<<<
+
+>>>>> Descriptor <<<<<
+
+>>>>>> Explainer <<<<<<
+
+>>>>>>> Major explainer <<<<<<<
+
+--- A LABELED DIVIDER ---
+
+"Normal quoted speech becomes a readable spoken block."
 
 >>!!
-      "Hard    to read    text    gets    wider spacing
-      and    inward    line    drops"
-                !!                                            !!                  !!<<
+ IMPORTANT blocks are centered and strongly boxed.
+ One complete outer quote pair is removed from a line, but a meaningful final quote is preserved"
+!! !! !!<<
 
->>>>>>>>EXIT TO BACKGROUND<<<<<<<<
+>>>> MARKDOWN INSIDE SCRIPT <<<<
 
-| Segment | Purpose |
+# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6
+
+**Bold**, *italic*, ***bold italic***, ___underlined___, ~~struck~~, and `literal code`.
+
+> A blockquote can hold context.
+>> A nested blockquote can hold supporting context.
+
+- [ ] An unchecked task
+- [x] A completed task
+- [#] A numbered marker
+- [$] A money marker
+- [%65] A percent item
+-# Automatically numbered tab item
+-# Another automatically numbered tab item
+1. Standard ordered item
+2) Alternate ordered item
+
+***
+
+| Feature | Result | Notes |
+| --- | --- | --- |
+| Links | [Copy this address](https://example.com/reference) | Reader copies instead of opening automatically |
+| Escapes | `\#` | Keeps a markup-looking mark literal |
+| Color | `[#4fd1ff]` | A valid trailing profile colors one object |
+
+>>>> FANCY FENCED BOX <<<<
+
+```text
+[Starter Data]
+**A labeled fancy box**
+Rich *inline* markup works inside the box.
+- [x] It can contain task-like lines.
+- It keeps the source easy to read.
+```
+
+>>>> INLINE ARROWS AND INDENT <<<<
+
+"Move forward ->, return <-, look up ^-^, or look down v-v. Diagonals: ^-> v-> <-v <-^."
+
+-> This source-line starter indents the Reader output by four spaces.
+
+>>>> GOLDEN AND ATTENTION MARKS <<<<
+
+###### Context => This continuation becomes dim-golden <<<<<
+
+###### !This reminder becomes bright golden! <<<<
+
+#########  ATTENTION REQUIRED <<<<<<
+
+>>>> SUPER AND SUBSCRIPT <<<<
+
+"Version #2 and H!!2O keep the visible prefix marks."
+
+"Hidden wrappers: #superscript!! and !!subscript#."
+
+"Cross groups: #upper!!lower# and !!lower#upper!!."
+
+"Slash groups stop at spaces: #12/value returns to normal and !!3/value returns too."
+
+>>>> OPTIONAL OBJECT COLORS <<<<
+
+"This entire spoken object is cyan." [#4fd1ff]
+
+>> A colored cue << (rgba(255, 130, 40, 0.90))
+
+"Show a color token literally instead of activating it: \`! [#4fd1ff]"
+
+>>>> LARGE SPACING MARKS <<<<
+
+"The next compact mark creates a seven-line breathing gap."
+
+######## .. <<<<<<<
+
+>>>> AFTER THE SEVEN-LINE GAP <<<<
+
+"The next compact mark creates a thirteen-line page-break gap."
+
+###### >> .. <<
+
+>>>> AFTER THE PAGE BREAK <<<<
+
+>>>> SPLIT-MODE LINKED SCROLLING <<<<
+
+"In Split and Story modes, the Editor is the source of truth for linked movement. SWAR maps visible source-line anchors to exact Reader positions, including tall boxes and seven-line or thirteen-line gap marks."
+
+"Tools → Linked Scrolling makes mouse-wheel and page-key movement act the same whether the pointer is over the Editor or Reader. Hold the right mouse button while scrolling for temporary linked movement when the toggle is off."
+
+"Each pane has its own bottom scroller for independent fine adjustment. Split and Story add one shared bottom scroller that always moves both panes from the Editor baseline."
+
+>>>> TELEPROMPTER <<<<
+
+| Key | Action |
 | --- | --- |
-| Reader | Fancy local preview |
-| Editor | Later syntax tools |
+| p | Pause or play |
+| o | Set 1x speed |
+| l / k | Next / previous speed |
+| i | Pause 3 seconds |
+| u | Pause 5 seconds |
+| j | Pause 10 seconds |
+| n | Pause 30 seconds |
 
->>>>>>>>RETURN TO SHOW<<<<<<<<
+"The speed slider moves backward on the negative side, stops at zero, and moves forward on the positive side. In Split mode it uses linked scrolling."
 
-- ../demo.pdf
+>>>> STORY ARCS QUICK LOOK <<<<
 
->>>> LOCAL FILE NOTE <<<<
+"Open examples/story_screenplay_demo.arcs and switch among Reader, Split, and Story. Reader and Split show the screenplay output; Story is the only mode that shows the Arc insertion controls."
 
->>>> !!! DO NOT RESPOND TO THIS YET !!! <<<<
-         || || || || || || || || ||
-         \/ \/ \/ \/ \/ \/ \/ \/ \/
+>>>> CONVO / MULTI-SPEAKER STORY OUTPUT <<<<
 
->>>> **GO OVER THE PROCESS OF SETTING UP NO STORE COOKIES** <<<<
+```arcs
+Meet Guide||3:2:3||Safe||***>>>> ARRIVAL <<<<\n"A voice calls from the old gate."***||$imported town_gate#||enter; Alice: "We made it."; "Keep your voice down." :Bob; Carol: "I found the sigil."; Dana: "I will watch the gate."; Alice: "Move now."; _The gate opens_; SEARCH GATE -> CLUE FOUND; >>>> SCENE CUE <<<<\n"Normal *.script markup works inside Arc Data."\n>>!!\n"This is an Important story detail."\n!! !! !!<<; ^Ask about the sigil^; *Follow the guide*; [enter/user {unlock}]; @{GATE}; ~brass key~; drop%25||***>>>> ARC COMPLETE <<<<\n"The guide joins the route."***
+```
+
+"The first new speaker uses the left talker, the second uses the right talker, and the third uses the centered talker with !! edges on both sides. Additional speakers repeat left, right, center with stable speaker colors."
+
+"Each conversation is enclosed by a top !! CONVO !! rail and a bottom CONVO END rail. Named speech can be written as NAME: \"speech\" or \"speech\" :NAME. Legacy \\User speech\\ and -NPC speech- wrappers still work."
+
+"Normal *.script block marks can be placed in Arc Data with literal \\n separators. Arrow titles, Important boxes, spoken blocks, indentation, inline arrows, colors, and gap marks render through the same Reader pipeline."
+
+>>>> HELP AND SAFE CUSTOMIZATION <<<<
+
+"Tools → Help can load the SWAR, SCRIPT, MARKDOWN, TEXT, and ARCS help files as tabs. Load All opens the complete learning set."
+
+"SWAR.udata and current.emoji are user files. Release patches should preserve them."
+
+--- END OF STARTER EXAMPLE ---
+
+>>>>>>> RETURN TO YOUR OWN SCRIPT <<<<<<<
