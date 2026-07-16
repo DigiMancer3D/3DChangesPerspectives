@@ -1,0 +1,80 @@
+=====================================
+     INTEGRATION ASSISTANT
+=====================================
+
+
+::FILE TYPES OVERVIEW::
+-------------------------------------
+.tmap: Single map file (text grid + header/footer/props/arcs).
+.mapd: Dictionary file (imports .tmaps + loose arcs + connections).
+.arcs: Single arc file (story/event data for integration).
+
+
+::READING .TMAP FILES::
+-------------------------------------
+Structure:
+- Header: "openings widthxheight view VIEW_TYPE sunrise xy(X,Y); sunset xy(X,Y) Pin At(X,Y) Pin To(X,Y)"
+  - openings: 7 chars (0-5); T/R/B/L/IL/IC/IR.
+  - view: Z=Z (side), Y=Z (iso), XY=Z (heli), XYZ=Z (top).
+  - sunrise/sunset: Optional sun positions.
+  - Pin At/To: Optional alignment pins.
+- Grid: Height lines of width symbols (e.g., # for walls).
+- Footer: "type; name; maker; system"
+  - type: Safe/Crawl/etc.
+- Props: "mapc[!] SYMBOL["COLOR";"NAME";"TEXTURE";SUN(X,3D,Y,DEPTH,HEIGHT,RANGE)+t(X,Y)+o(X,Y)VALUE;earmark=EAR; & ]" ...
+  - Per non-default cell; & for title card ON.
+- Arcs: ";arcs:: ARC_LINE1;ARC_LINE2..." (optional).
+  - ARC_LINE: name||estimated||zone_type||***start_msg***||$map#||arc_data||***confirm_msg***
+
+
+Parse Tips:
+- Split header by spaces; parse optional parts with regex.
+- Grid as 2D array from lines[1:1+height].
+- Footer split by ";".
+- Props: Parse after "mapc[!] "; each [] block per cell.
+- Arcs: Split after ";arcs::" by ";"; each ||-separated.
+
+
+::READING .MAPD FILES::
+-------------------------------------
+Structure:
+- Import: "import {"map1","map2",...}"
+  - Load referenced .tmap files.
+- Arcs: Loose ARC_LINEs (one per line).
+  - Format as in .tmap arcs.
+- Connections: ";connections:: "map1" (0[0]){conn0;conn1;...}; "map2" (1[1]){...}; ..."
+  - connX: "--" or "mapY (Y[Z])" (Z=position 0-6).
+
+
+Parse Tips:
+- Import: Extract quoted names; load .tmaps.
+- Arcs: Each line as ARC_LINE (||-separated).
+- Connections: Parse per map; split {} by ";"; map to positions.
+
+
+::READING .ARCS FILES::
+-------------------------------------
+Structure:
+- Single ARC_LINE: name||estimated||zone_type||***start_msg***||$map#||arc_data||***confirm_msg***
+  - estimated: M:S:m (times).
+  - zone_type: Safe/etc.
+  - map: $import# or #generate!.
+  - arc_data: Scripts/phrases (see fulldata.list).
+
+
+Parse Tips:
+- Split by "||"; strip *** for msgs.
+- Integrate with .tmap/.mapd for full context.
+
+
+::GENERAL INTEGRATOR NOTES::
+-------------------------------------
+- Symbols: See fullsymbol.list; 'Q' home (multi-connect), 'I' instance (single-connect) for waypoints.
+- Phrases: See fullphrases.list; trigger events.
+- Connections: Validate per door.guide; waypoints to 0/4/5.
+- Engine Relay: Arc data/phrases drive events (e.g., "kill" on enemy death).
+- Use Python/Numpy for grid parsing; regex for props/connections.
+
+=====================================
+  Integrate for dynamic PB gameplay.
+=====================================

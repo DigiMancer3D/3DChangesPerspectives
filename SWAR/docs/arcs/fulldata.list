@@ -1,0 +1,35 @@
+=====================================
+          FULL ARC DATA LIST
+=====================================
+
+
+ ARC DATA ELEMENT       | CONTEXT / RELAY TO ENGINE
+------------------------|--------------------------------------------
+ Bind-2-action          | [event/entity/object {action}]: set special stuff to activate upon an action
+ Bind-2-event           | {action/entity/object [event]}: set special stuff to activate upon an event
+ Bind-2-entity          | (event/action/object (entity)): set special stuff to activate upon an entity
+ $imported map#         | a needed map for this arc, use the map import header for more
+ $generate map!         | a needed map to be generated on the fly
+ ***Starting Text***    | triggers at arc start; info/lore; use arrows for multi-page (book animation)
+ 'monster names'        | types of known or wanted monsters to spawn
+ ~object drops~         | objects expected to drop
+ drop%                  | percentage at which things drop (follows monster/object or generic rate)
+ +spawn_rates           | percentage at which things spawn (follows monster/object or generic rate)
+ ^interactable event^   | allowed interactable events (trigger on exit if no objects)
+ *mandatory event*      | forced interactable events (trigger on entry if no objects)
+ /User's Thoughts/      | text for user's character thinking
+ \User's Speech\        | text for user's character speaking
+ _Noticed actions_      | text describing what happened or was seen
+ -NPC Speech-           | text for NPC or non-user-playable-character speaking
+ ->'CHARACTER_NAME'     | pointer to addressed character (after thought/speech/action)
+ ->data_phrase          | pointer to addressed via data phrase (after thought/speech/action)
+ <-                     | back action arrow: points to effected for what comes after (instant)
+ ->                     | front action arrow: points to effected for what comes before (instant)
+ <<                     | back effect arrows: points to targeted for what comes after (may linger)
+ >>                     | front effect arrows: points to targeted for what comes before (may linger)
+ ***Completion Text***  | appears on goal complete or arc end
+
+=====================================
+  Use for story, events, integrations.
+  See phrases for triggers; waypoints ('Q'/'I') link via symbols.
+=====================================

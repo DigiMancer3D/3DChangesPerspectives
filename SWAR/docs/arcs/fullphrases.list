@@ -1,0 +1,47 @@
+=====================================
+          FULL PHRASES LIST
+=====================================
+
+
+ PHRASE  |       MEANING
+---------|--------------------------------------------
+ "exit"  | activates when user exits map/zone type
+ "enter" | activates on load/wrap/enter/first interact
+ "kill"  | non-player enemy/mini-boss/boss killed
+ "death" | non-player NPC killed
+ "squash"| non-player user killed
+ "XYZ"   | player user killed
+ "pick"  | user picks up or activates enemy/boss
+ "acts"  | user activates (no touch) enemy/boss
+ "touch" | left touches right; events as activator
+ "user"  | any non-player + active user
+ "jim"   | non-player non-active user
+ "sarah" | active user only
+ "bob"   | non-enemy (NPCs/non-player/active user)
+ "obj"   | non-weapon objects
+ "weap"  | weapons
+ "armed" | armor
+ "arm"   | human arm/limb
+ "speed" | increase speed
+ "faster"| increase attack speed
+ "slower"| decrease attack speed
+ "slow"  | decrease speed
+ "glue"  | lock creature/object temporarily
+ "hot"   | burn temporarily; no-spread
+ "cold"  | frost damage; slows over time; no-spread
+ "froze" | ice damage; lock + multiply; spreads
+ "flame" | fire + burn multiply; spreads
+ "drop"  | droppable; event activator on drop
+ "xplode"| explodable corpse/enemy/object; activator
+ "burp"  | explodes target; activator
+ "burpee"| user gains fitness
+ "slothee"| user loses fitness
+ "plop"  | user drops; *plop* forces drop
+ "wrap"  | user enters without door/opening (no death)
+ "parw"  | user exits without door/opening (no death)
+ "par"   | completes goal within last 5 seconds
+
+=====================================
+  Phrases trigger events/actions.
+  Pair with symbols (e.g., 'Q'/'I' waypoints).
+=====================================

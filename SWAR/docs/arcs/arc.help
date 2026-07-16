@@ -1,0 +1,61 @@
+=====================================
+           ARC HELP
+=====================================
+
+
+::ARC CREATION BASICS::
+-------------------------------------
+New Arc: Click "New Arc" for fresh start.
+  - Arc Name: Title (max 18 chars).
+  - Estimated Type: E2F, E2S, SHT, LHT.
+  - Estimated Parts: Numerics by type (e.g., 3:2:3).
+  - Zone Type: Safe, Crawl, Fight, Mix0-3, Mixed.
+  - Start Msg: Initial lore (max 150 chars).
+  - Map: ID/name.
+  - Map Type: Import/Generate.
+  - Arc Data: Scripts/events (see arc.guide).
+  - Confirm Msg: End text (max 150 chars).
+
+
+::EDITING ARCS::
+-------------------------------------
+Select Arc: Click list to load.
+Modify Fields: Edit; auto-save on blur.
+Undo/Redo Arc: Revert/reapply changes.
+Delete Arc: Remove (recover via Undo Arc Delete).
+Attach to Map: Link to current tab (green dots).
+Save Arc: To .arcs file.
+Load Arc: From .arcs (overwrite).
+Load to Map: Load + attach.
+Save Selected: Export current.
+Save from Map: Export attached.
+Save from Dict: Export all incl. attached.
+
+
+::SCRIPT GENERATOR::
+-------------------------------------
+Select Type: Enemy/Boss/Mini-Boss/NPC/Group/Location/Keys.
+Fill Fields: Name, rates, color, etc.
+Pick Location: Canvas click for XY/object.
+Inject: Add formatted string to Arc Data.
+
+
+::DATA PHRASES::
+-------------------------------------
+Click buttons: Insert "exit", "kill", etc.
+
+
+::ARC OPTIONS::
+-------------------------------------
+Save Arc: Commit to list.
+Load Arc: From file.
+Undo/Redo: Current edits.
+Remove Edits: Clear to defaults.
+Clear Data: Arc-Data only.
+Clear Fields: All data fields.
+Clear Scripts: Script generator only.
+
+=====================================
+  !See arc.guide for syntax/examples!
+  !Integrate waypoints ('Q'/'I') for teleporters!
+=====================================

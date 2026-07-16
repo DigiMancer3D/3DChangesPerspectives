@@ -1,0 +1,84 @@
+=====================================
+       ARC DATA GUIDE
+=====================================
+
+
+::KEY BINDINGS (may not be working)::
+-------------------------------------
+ [key {action}]              | set special keys for arc/dictionary
+ {key [setting]}             | set special settings toggle keys
+ (key (action/setting))      | set special hold keys
+
+
+::MAP INTEGRATION::
+-------------------------------------
+ $imported map#              | needed map for arc (use import header)
+ $generate map!              | needed map generated on-the-fly
+
+
+::OPENING ARC::
+-------------------------------------
+ ***Starting Text***         | triggers at start; info/lore; arrows for multi-page (book animation)
+
+
+::NON-STORY ELEMENTS::
+-------------------------------------
+ 'monster name/type'         | monsters to spawn
+ ~object name/type~          | expected drops
+ drop%                       | drop percentage (follows monster/object or generic)
+ +spawn_rates                | spawn percentage (follows monster/object or generic)
+
+
+::INTERACTION SYSTEMS::
+-------------------------------------
+ ^interactable event^        | allowed events (exit trigger if no objects)
+ *mandatory event*           | forced events (entry trigger if no objects)
+
+
+::LOCATION SYSTEMS::
+-------------------------------------
+ @{LOCATION}                 | XY on map
+ @{__LOCATION__}             | dynamic (__RANDOM__, __NEAR_WATER__, etc.)
+ @{"SYMBOL"}                 | dynamic by symbol (e.g., @{"X"} for boss door)
+
+
+::STORY ARC::
+-------------------------------------
+ /User's Thoughts/           | character's thinking text
+ \User's Speech\             | character's speaking text
+ _Noticed actions_           | description of events/observations
+ -NPC Speech-                | NPC/NUPC speaking text
+ ->'CHARACTER_NAME'          | address character (after thought/speech/action)
+ ->data_phrase               | address via phrase (after thought/speech/action)
+
+
+::CAUSE-&-EFFECT SYSTEMS::
+-------------------------------------
+ ANYTHING -> ANYTHING        | left happens -> do right (instant action)
+ ANYTHING <- ANYTHING        | left waits for right (action block)
+ <<                          | back effect: target after (may linger)
+ >>                          | front effect: target before (may linger)
+
+
+::EXIT ARC::
+-------------------------------------
+ ***Completion Text***       | on goal complete or arc end
+
+
+::GOAL VALUES (up to 3 per arc)::
+-------------------------------------
+ Single (e.g., 1)            | goal order/position
+ Double (e.g., 1;3)          | start goal; repeat count
+ Triple (e.g., 1;2;3)        | sectional goals (gaps/sequences)
+
+
+::NOTES::
+-------------------------------------
+- Use phrases/symbols for triggers (e.g., 'Q' home / 'I' instance for waypoints).
+- Waypoints integrate with teleporters; instances connect to 1 (home/instance), homes to many instances.
+- Speech around elements except listings; Event->object->text only non-goal determined text.
+- Separate goals with ";" ; no space after goal value.
+
+=====================================
+  Build immersive stories with maps.
+=====================================

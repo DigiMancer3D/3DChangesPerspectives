@@ -1,0 +1,56 @@
+=====================================
+          FULL SYMBOL LIST
+=====================================
+
+
+ SYMBOL  |       DESCRIPTION
+---------|-------------------------------
+ ' '     | Walk Space
+ /       | Non-Existing Untouchable Land
+ \       | Not-Apart-Of-Map
+ &       | Barrier
+ #       | Wall
+ %       | Waterfall (Barrier/Wall [NON-INTERACTIVE])
+ =       | Waterfall (Barrier/Object [INTERACTIVE])
+ @       | Almond Water Supply
+ :       | Climbable Wall
+ |       | Climbable Object
+ !       | Interactive Object
+ ?       | Object Chest
+ *       | User Chest
+ +       | Door
+ -       | Non-Interactive Door
+ [       | Window (Start)
+ .       | Window (Middle)
+ ]       | Window (End)
+ {       | Break-in-Ground (Start)
+ _       | Break-in-Ground (Middle)
+ }       | Break-in-Ground (End)
+ X       | Boss Door
+ D       | Boss Spawner
+ M       | Mini-Boss Spawner
+ T       | Trap
+ W       | Weapon
+ A       | Armor
+ S       | Skill
+ E       | Enemy
+ Y       | Enemy Encampment
+ O       | Mini-Boss Group
+ G       | Boss Group
+ C       | Camp (NPCs)
+ Z       | Safe Zone
+ L       | Ladder Way (Up/Down)
+ H       | Hole (Down Only)
+ R       | Rope (Up Only)
+ Q       | Teleporter Home
+ I       | Teleporter Instance (Waypoint)
+ P       | Puzzle Piece
+ V       | Vending Unit
+ B       | Boat
+ ~       | Water (Deadly [BOAT ONLY])
+ ,       | Water (Swimable [SKILL NEEDED])
+ --      | Properties Selector
+
+=====================================
+  Use symbols to build maps visually.
+=====================================
