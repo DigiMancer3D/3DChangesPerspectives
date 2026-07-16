@@ -1,0 +1,8 @@
+{
+  "app_id": "swar_v0_7_1_rc1_r3",
+  "hotkey_map": {},
+  "hotkeys_enabled": false,
+  "mode": "local",
+  "note": "SBC adapter control file. Native app support reads this from the app folder.",
+  "protocol": "SBC_ADAPTER_CONTROL_V1"
+}
