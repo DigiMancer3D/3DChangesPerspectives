@@ -4,12 +4,20 @@ from html import escape, unescape
 import re
 from urllib.parse import quote
 
-from .parser import ScriptDoc, Block, _normalize_color_profile
+from .parser import ScriptDoc, Block, SwarParser, _normalize_color_profile
 from .themes import Theme, get_theme
 
 
 RED_ARROW = "#ff4040"
 GREEN_ARROW = "#42e66b"
+DIM_GOLD = "#b88a32"
+BRIGHT_GOLD = "#ffd75a"
+ATTN_RED = "#ff3b3b"
+STORY_ARC_COLOR = "#b889ff"
+STORY_LEFT_COLOR = "#5fc8ff"
+STORY_RIGHT_COLOR = "#ff9bcf"
+STORY_CENTER_COLOR = "#ffd75a"
+STORY_DIRECTIVE_COLOR = "#8ce6a2"
 
 
 def render_doc_html(doc: ScriptDoc, theme_name: str = "Dark Mode", allow_online_links: bool = False) -> str:
@@ -29,6 +37,10 @@ def render_doc_html(doc: ScriptDoc, theme_name: str = "Dark Mode", allow_online_
             elif last_real_kind not in {"", "header", "meta_secret", "blank", "source"}:
                 parts.append('<div class="source-pre-gap"></div>')
 
+        # Zero-width named anchors let Split/Story map editor source lines to
+        # exact rendered Y positions.  They account for tall boxes and vertical
+        # gap marks without adding visible content.
+        parts.append(f'<a name="swar-line-{max(1, int(block.line_start))}" style="font-size:0; line-height:0;">&#8203;</a>')
         fancy_variant = 1 if block.kind == "markdown_fenced_box" and last_real_kind in {"markdown_fenced_box", "arrow_title"} else 0
         html = render_block(block, theme, allow_online_links=allow_online_links, fancy_variant=fancy_variant)
         if html:
@@ -39,6 +51,9 @@ def render_doc_html(doc: ScriptDoc, theme_name: str = "Dark Mode", allow_online_
             if block.kind == "source" and block.level <= 1:
                 last_top_source_index = i
 
+    if doc.blocks:
+        final_line = max(int(block.line_end) for block in doc.blocks) + 1
+        parts.append(f'<a name="swar-line-{final_line}" style="font-size:0; line-height:0;">&#8203;</a>')
     if doc.warnings:
         parts.append('<div class="warnings"><b>Parser warnings:</b><br>')
         parts.extend(escape(w) + "<br>" for w in doc.warnings)
@@ -186,6 +201,33 @@ def render_block(block: Block, theme: Theme, allow_online_links: bool = False, f
             f'title="Extended paragraph break: {count} blank lines">'
             f'<span>•&nbsp;&nbsp;•&nbsp;&nbsp;•</span></div>'
         )
+
+    if kind == "vertical_gap":
+        count = max(1, min(40, int(block.attrs.get("gap_lines", 7))))
+        page_cls = " page-break-gap" if block.attrs.get("page_break") else ""
+        return f'<div class="swar-vertical-gap{page_cls}" data-gap-lines="{count}">' + ("<br>" * count) + "</div>"
+
+    if kind == "golden_dim":
+        prefix = _inline_markdown(escape(str(block.attrs.get("prefix", text))), theme)
+        highlighted = _inline_markdown(escape(str(block.attrs.get("highlight", ""))), theme)
+        return (f'<div class="golden-line golden-dim" style="margin-left:{margin}px">'
+                f'<span class="golden-prefix">{prefix}</span> '
+                f'<span class="golden-highlight">{highlighted}</span></div>')
+
+    if kind == "golden_bright":
+        highlighted = _inline_markdown(escape(str(block.attrs.get("highlight", text))), theme)
+        return f'<div class="golden-line golden-bright" style="margin-left:{margin}px">{highlighted}</div>'
+
+    if kind == "attention_red":
+        arrows = escape(str(block.attrs.get("arrows", "<<<<<<")))
+        return (f'<div class="attention-red" style="margin-left:{margin}px">'
+                f'<span>{_inline_markdown(escape(text), theme)}</span> <span class="attention-arrows">{arrows}</span></div>')
+
+    if kind == "indent4":
+        return f'<p class="plain indent-four" style="margin-left:{margin}px">{_inline_markdown(escape(text), theme)}</p>'
+
+    if kind == "arc_record":
+        return _render_arc_record(block, theme, allow_online_links=allow_online_links)
 
     if kind == "header":
         href = _copy_href(text)
@@ -394,7 +436,11 @@ def _format_important_html(text: str, theme: Theme, line_colors: list[str | None
     lines = text.splitlines() or [text]
     out: list[str] = []
     for i, line in enumerate(lines):
-        clean = line.strip().strip('"')
+        clean = line.strip()
+        # Remove quotes only when this exact line has one complete outer pair.
+        # The earlier strip('"') ate a meaningful final quote on multi-line content.
+        if len(clean) >= 2 and clean.startswith('"') and clean.endswith('"'):
+            clean = clean[1:-1]
         if not clean:
             continue
         normalized = " ".join(clean.split())
@@ -405,6 +451,256 @@ def _format_important_html(text: str, theme: Theme, line_colors: list[str | None
         color = line_colors[i] if line_colors and i < len(line_colors) else None
         out.append(_apply_color_profile(line_html, color, theme, local=True))
     return "\n".join(out) if out else '<div class="important-line"></div>'
+
+
+def _story_arc_divider(*, compact: bool = False) -> str:
+    cls = "story-arc-divider compact" if compact else "story-arc-divider"
+    return f'<div class="{cls}"><span>STORY ARC</span></div>'
+
+
+def _render_embedded_story_markup(text: str, theme: Theme, allow_online_links: bool = False) -> str:
+    """Render normal SWAR markup inside Story opening/completion fields.
+
+    Literal ``\\n`` sequences are accepted because one .arcs record occupies one
+    physical source line.  The embedded parse deliberately uses a .script path,
+    so it cannot recurse back into Arc-record parsing.
+    """
+    decoded = str(text or "").replace("\\n", "\n").strip()
+    if not decoded:
+        return '<span class="arc-empty">empty</span>'
+    embedded = SwarParser().parse(decoded, path="embedded_story.script")
+    rendered: list[str] = []
+    for item in embedded.blocks:
+        html = render_block(item, theme, allow_online_links=allow_online_links)
+        if html:
+            rendered.append(_apply_color_profile(html, item.attrs.get("color_profile"), theme))
+    return "\n".join(rendered) if rendered else _inline_markdown(escape(decoded), theme)
+
+
+def _story_inline(value: str, theme: Theme) -> str:
+    return _inline_markdown(escape(str(value or "")), theme)
+
+
+def _story_speaker_color(index: int, theme: Theme) -> str:
+    palette = (
+        STORY_LEFT_COLOR, STORY_RIGHT_COLOR, STORY_CENTER_COLOR,
+        theme.highlight3, theme.highlight4, BRIGHT_GOLD,
+    )
+    return palette[index % len(palette)]
+
+
+def _render_story_talk(item: dict[str, str], theme: Theme, *, slot: str, speaker_index: int) -> str:
+    slot = slot if slot in {"left", "right", "center"} else "center"
+    speaker = _story_inline(item.get("speaker", "TALKER"), theme)
+    text = _story_inline(item.get("text", ""), theme)
+    target = str(item.get("target", "")).strip()
+    color = _story_speaker_color(speaker_index, theme)
+    target_html = ""
+    if target:
+        target_html = f'<div class="story-talk-target">TO&nbsp;→&nbsp;{_story_inline(target, theme)}</div>'
+    thought = " thought" if item.get("talk_type") == "thought" else ""
+    left_buffer = "!!" if slot in {"right", "center"} else ""
+    right_buffer = "!!" if slot in {"left", "center"} else ""
+    if slot == "left":
+        body = (
+            f'<div class="story-speech"><span class="story-speaker-inline" style="color:{color};">{speaker}:</span> '
+            f'<span class="story-quote">&quot;{text}&quot;</span></div>{target_html}'
+        )
+    elif slot == "right":
+        body = (
+            f'<div class="story-speech"><span class="story-quote">&quot;{text}&quot;</span> '
+            f'<span class="story-speaker-inline" style="color:{color};">:{speaker}</span></div>{target_html}'
+        )
+    else:
+        body = (
+            f'<div class="story-speech story-center-speech"><span class="story-quote">&quot;{text}&quot;</span></div>'
+            f'<div class="story-center-speaker" style="color:{color};">{speaker}</div>{target_html}'
+        )
+    return (
+        f'<table class="story-talk-row {slot}{thought} speaker-{speaker_index % 6}" width="100%" cellpadding="0" cellspacing="0">'
+        '<tr>'
+        f'<td class="story-talk-buffer left-buffer" style="color:{color};">{left_buffer}</td>'
+        f'<td class="story-talk-main" style="border-color:{color};">{body}</td>'
+        f'<td class="story-talk-buffer right-buffer" style="color:{color};">{right_buffer}</td>'
+        '</tr></table>'
+    )
+
+
+def _render_story_conversation(
+    talks: list[dict[str, str]],
+    theme: Theme,
+    speaker_assignments: dict[str, tuple[str, int]],
+) -> str:
+    if not talks:
+        return ""
+    rows: list[str] = []
+    for item in talks:
+        key = str(item.get("speaker", "TALKER")).strip().casefold() or "talker"
+        slot, index = speaker_assignments[key]
+        rows.append(_render_story_talk(item, theme, slot=slot, speaker_index=index))
+    return (
+        '<div class="story-conversation">'
+        '<div class="story-convo-rail"><span>!!</span><b>CONVO</b><span>!!</span></div>'
+        + "".join(rows)
+        + '<div class="story-convo-end">CONVO END</div></div>'
+    )
+
+
+def _render_story_markup(value: str, theme: Theme, allow_online_links: bool = False) -> str:
+    return (
+        '<div class="story-script-markup"><div class="story-subtitle">SCRIPT MARKUP</div>'
+        + _render_embedded_story_markup(value, theme, allow_online_links)
+        + '</div>'
+    )
+
+def _render_story_directive(item: dict[str, str], theme: Theme) -> str:
+    left = _story_inline(item.get("left", ""), theme)
+    right = _story_inline(item.get("right", ""), theme)
+    arrow = item.get("arrow", "->")
+    glyph = {"->": "➜", "<-": "⬅", ">>": "⟹", "<<": "⇐"}.get(arrow, "➜")
+    backward = arrow in {"<-", "<<"}
+    direction = " backward" if backward else " forward"
+    lingering = " lingering" if arrow in {">>", "<<"} else " instant"
+    left_label = "RESULT / EFFECT" if backward else "ACTION / POINT"
+    right_label = "ACTION / POINT" if backward else "RESULT / EFFECT"
+    return (
+        f'<div class="story-directive{direction}{lingering}">'
+        '<table class="story-directive-grid" width="100%" cellspacing="0" cellpadding="0"><tr>'
+        f'<td class="story-directive-box story-left-box"><div class="story-directive-label">{left_label}</div>{left}</td>'
+        f'<td class="story-directive-arrow" title="{escape(arrow)}">{glyph}</td>'
+        f'<td class="story-directive-box story-right-box"><div class="story-directive-label">{right_label}</div>{right}</td>'
+        '</tr></table></div>'
+    )
+
+
+def _render_story_notice(item: dict[str, str], theme: Theme) -> str:
+    text = _story_inline(item.get("text", ""), theme)
+    target = str(item.get("target", "")).strip()
+    target_html = f'<div class="story-notice-target">DIRECTED TO: {_story_inline(target, theme)}</div>' if target else ""
+    return f'<div class="story-notice"><div class="story-notice-label">DIRECTIVE / PLOT POINT</div>{text}{target_html}</div>'
+
+
+def _render_story_option(item: dict[str, str], theme: Theme) -> str:
+    mandatory = item.get("option_type") == "mandatory"
+    cls = "story-option mandatory" if mandatory else "story-option interactable"
+    label = "REQUIRED" if mandatory else "OPTION"
+    marker = "◆" if mandatory else "◇"
+    return f'<div class="{cls}"><span class="story-option-marker">{marker}</span><b>{label}</b><span>{_story_inline(item.get("text", ""), theme)}</span></div>'
+
+
+def _render_story_data_table(items: list[dict[str, str]], theme: Theme) -> str:
+    if not items:
+        return ""
+    rows: list[str] = []
+    for item in items:
+        category = _story_inline(item.get("category", "Arc Data"), theme)
+        label = _story_inline(item.get("label", "Data"), theme)
+        value = _story_inline(item.get("text", ""), theme)
+        rows.append(f'<tr><th>{category}</th><td class="story-data-label">{label}</td><td>{value}</td></tr>')
+    return (
+        '<div class="story-data-group"><div class="story-subtitle">COMMON / ENGINE DATA</div>'
+        '<table class="story-data-table" width="100%" cellspacing="0" cellpadding="0">'
+        '<tr><th>GROUP</th><th>TYPE</th><th>VALUE</th></tr>'
+        + "".join(rows)
+        + '</table></div>'
+    )
+
+
+def _render_story_flow(
+    elements: list[dict[str, str]],
+    theme: Theme,
+    allow_online_links: bool = False,
+) -> str:
+    visible: list[str] = []
+    data_items: list[dict[str, str]] = []
+    talk_buffer: list[dict[str, str]] = []
+
+    # Keep each speaker in a stable slot/color for the whole Arc.  New speakers
+    # rotate left, right, center; legacy side hints are honored when possible.
+    speaker_assignments: dict[str, tuple[str, int]] = {}
+    used_initial: set[str] = set()
+    for item in elements:
+        if item.get("kind") != "talk":
+            continue
+        key = str(item.get("speaker", "TALKER")).strip().casefold() or "talker"
+        if key in speaker_assignments:
+            continue
+        index = len(speaker_assignments)
+        hint = str(item.get("side_hint", item.get("side", ""))).lower()
+        if index < 2 and hint in {"left", "right"} and hint not in used_initial:
+            slot = hint
+        else:
+            slot = ("left", "right", "center")[index % 3]
+            if index < 3 and slot in used_initial:
+                slot = next((candidate for candidate in ("left", "right", "center") if candidate not in used_initial), slot)
+        speaker_assignments[key] = (slot, index)
+        if index < 3:
+            used_initial.add(slot)
+
+    def flush_talks() -> None:
+        nonlocal talk_buffer
+        if talk_buffer:
+            visible.append(_render_story_conversation(talk_buffer, theme, speaker_assignments))
+            talk_buffer = []
+
+    for item in elements:
+        kind = item.get("kind", "")
+        if kind == "talk":
+            talk_buffer.append(item)
+            continue
+        flush_talks()
+        if kind == "directive":
+            visible.append(_story_arc_divider(compact=True))
+            visible.append(_render_story_directive(item, theme))
+            visible.append(_story_arc_divider(compact=True))
+        elif kind in {"notice", "plot"}:
+            visible.append(_story_arc_divider(compact=True))
+            visible.append(_render_story_notice(item, theme))
+            visible.append(_story_arc_divider(compact=True))
+        elif kind == "markup":
+            visible.append(_render_story_markup(item.get("text", ""), theme, allow_online_links))
+        elif kind == "option":
+            visible.append(_render_story_option(item, theme))
+        elif kind == "data":
+            data_items.append(item)
+    flush_talks()
+
+    flow = "".join(visible)
+    return flow + _render_story_data_table(data_items, theme)
+
+def _render_arc_record(block: Block, theme: Theme, allow_online_links: bool = False) -> str:
+    attrs = block.attrs
+    name = _story_inline(str(attrs.get("name", block.text or "Untitled Arc")), theme)
+    estimated = _story_inline(str(attrs.get("estimated", "0:0:0")), theme)
+    zone = _story_inline(str(attrs.get("zone_type", "Safe")), theme)
+    map_ref = _story_inline(str(attrs.get("map_ref", "")), theme)
+    start = _render_embedded_story_markup(str(attrs.get("start_message", "")), theme, allow_online_links)
+    confirm = _render_embedded_story_markup(str(attrs.get("confirm_message", "")), theme, allow_online_links)
+    elements = list(attrs.get("story_elements", []))
+    flow = _render_story_flow(elements, theme, allow_online_links)
+    warnings = list(attrs.get("record_warnings", []))
+    warning_html = ""
+    if warnings:
+        warning_html = '<div class="arc-warnings">' + '<br>'.join(escape(str(item)) for item in warnings) + '</div>'
+    if not flow:
+        raw_data = str(attrs.get("arc_data", ""))
+        flow = '<div class="arc-data"><b>ARC DATA</b><div>' + (_story_inline(raw_data, theme) if raw_data else '<span class="arc-empty">empty</span>') + '</div></div>'
+    return (
+        _story_arc_divider()
+        + '<section class="arc-card story-screenplay-card">'
+          f'<div class="arc-title">{name}</div>'
+          '<table class="story-base-table" width="100%" cellspacing="0" cellpadding="0">'
+          f'<tr><th>ESTIMATE</th><td>{estimated}</td><th>ZONE</th><td>{zone}</td></tr>'
+          f'<tr><th>MAP</th><td colspan="3">{map_ref}</td></tr>'
+          f'<tr><th>SOURCE</th><td colspan="3">ARCS LINE {block.line_start}</td></tr>'
+          '</table>'
+          f'<div class="arc-stage arc-start"><div class="story-stage-label">OPENING</div>{start}</div>'
+          f'{flow}'
+          f'<div class="arc-stage arc-complete"><div class="story-stage-label">COMPLETION</div>{confirm}</div>'
+          f'{warning_html}'
+          '</section>'
+        + _story_arc_divider()
+    )
 
 
 def _render_fenced_box(block: Block, theme: Theme, fancy_variant: int = 0) -> str:
@@ -574,6 +870,227 @@ def _protect_backslash_escapes(safe_text: str) -> tuple[str, list[str]]:
     return "".join(out), held
 
 
+_INLINE_ARROW_RE = re.compile(
+    r"\^-&gt;|[vV]-&gt;|&lt;-[vV]|&lt;-\^|\^-\^|[vV]-[vV]|-&gt;|&lt;-"
+)
+_INLINE_ARROW_MAP = {
+    "^-&gt;": "↗", "v-&gt;": "↘", "V-&gt;": "↘",
+    "&lt;-v": "↙", "&lt;-V": "↙", "&lt;-^": "↖",
+    "^-^": "↑", "v-v": "↓", "V-V": "↓",
+    "-&gt;": "→", "&lt;-": "←",
+}
+
+
+def _replace_inline_arrows(staged: str) -> str:
+    """Replace arrow aliases only after real content on the same rendered line."""
+    def replace(match: re.Match[str]) -> str:
+        prefix = staged[:match.start()]
+        if not prefix.strip():
+            return match.group(0)
+        return _INLINE_ARROW_MAP.get(match.group(0), match.group(0))
+    return _INLINE_ARROW_RE.sub(replace, staged)
+
+
+def _protect_super_sub_markup(staged: str, depth: int = 0) -> tuple[str, list[str]]:
+    """Protect SWAR super/sub markup before the Markdown pass.
+
+    This is a left-to-right scanner instead of a sequence of global regular
+    expressions.  The scanner consumes the outermost construct before looking
+    at later text, preventing one super/sub group from stealing delimiters that
+    belong to a following group on the same line.
+    """
+    tokens: list[str] = []
+
+    def hold(html: str) -> str:
+        tokens.append(html)
+        return f"@@SWAR_SCRIPT_{len(tokens) - 1}@@"
+
+    def render_inner(value: str) -> str:
+        if not value or depth >= 4:
+            return value
+        inner, held = _protect_super_sub_markup(value, depth + 1)
+        for index, html in enumerate(held):
+            inner = inner.replace(f"@@SWAR_SCRIPT_{index}@@", html)
+        return inner
+
+    def wrapped(tag: str, value: str, *, keep_prefix: str = "") -> str:
+        return hold(f"<{tag}>{keep_prefix}{render_inner(value)}</{tag}>")
+
+    def match_cross(position: int, first: str) -> tuple[int, str] | None:
+        if first == "#":
+            match = re.match(r"#([^#!\n]+?)!!([^#!\n]+?)#", staged[position:])
+            if not match:
+                return None
+            html = (
+                f"<sup>{render_inner(match.group(1).strip())}</sup> "
+                f"<sub>{render_inner(match.group(2).strip())}</sub>"
+            )
+        else:
+            match = re.match(r"!!([^!#\n]+?)#([^!#\n]+?)!!", staged[position:])
+            if not match:
+                return None
+            html = (
+                f"<sub>{render_inner(match.group(1).strip())}</sub> "
+                f"<sup>{render_inner(match.group(2).strip())}</sup>"
+            )
+        return position + match.end(), hold(html)
+
+    def match_chain(position: int, delim: str, tag: str) -> tuple[int, str] | None:
+        """Match compact multi-groups such as ``#a#b#c#``.
+
+        Chain groups intentionally stay compact (no whitespace inside a group)
+        so ordinary prose containing separated hash/exclamation punctuation is
+        not captured as one giant construct.
+        """
+        cursor = position + len(delim)
+        segments: list[str] = []
+        while cursor < len(staged):
+            close = staged.find(delim, cursor)
+            if close < 0:
+                return None
+            segment = staged[cursor:close]
+            if not segment or any(ch.isspace() for ch in segment):
+                return None
+            if (delim == "#" and "!" in segment) or (delim == "!!" and "#" in segment):
+                return None
+            segments.append(segment)
+            end = close + len(delim)
+            # A chain needs at least two wrapped values.  Continue while the
+            # next character starts another compact value; otherwise this is
+            # the closing delimiter for the complete chain.
+            if len(segments) >= 2 and (
+                end >= len(staged)
+                or staged[end].isspace()
+                or staged[end] in ",.;:!?)]}<>/\\-+="
+            ):
+                html = " ".join(f"<{tag}>{render_inner(part)}</{tag}>" for part in segments)
+                return end, hold(html)
+            cursor = end
+        return None
+
+    out: list[str] = []
+    i = 0
+    while i < len(staged):
+        # HTML entities contain a literal '#', for example ``&#39;``.  They
+        # must never be interpreted as SWAR markup.
+        if staged.startswith("#", i) and i > 0 and staged[i - 1] == "&":
+            out.append("#")
+            i += 1
+            continue
+
+        marker = "!!" if staged.startswith("!!", i) else "#" if staged.startswith("#", i) else ""
+        if not marker:
+            out.append(staged[i])
+            i += 1
+            continue
+
+        # Do not begin a prefix form in the middle of an alphanumeric token.
+        if i > 0 and (staged[i - 1].isalnum() or staged[i - 1] == "_"):
+            out.append(marker)
+            i += len(marker)
+            continue
+
+        # One bounded level of true nesting is supported by choosing an outer
+        # closing marker that is at a token boundary. Examples:
+        # ``#outer !!inner#!!`` and ``!!outer #inner!!#``.
+        outer_close = "!!" if marker == "#" else "#"
+        search_at = i + len(marker)
+        nested_match: tuple[int, str] | None = None
+        while True:
+            close_at = staged.find(outer_close, search_at)
+            if close_at < 0:
+                break
+            close_end = close_at + len(outer_close)
+            boundary = close_end >= len(staged) or not (
+                staged[close_end].isalnum() or staged[close_end] == "_"
+            )
+            content = staged[i + len(marker):close_at]
+            if boundary and content and len(content) <= 240:
+                # Avoid swallowing later independent groups. One nested opposite
+                # opener/closer is allowed inside the outer wrapper.
+                if marker == "#":
+                    safe_shape = content.count("!!") <= 1 and content.count("#") <= 1
+                else:
+                    safe_shape = content.count("#") <= 1 and content.count("!!") <= 1
+                if safe_shape:
+                    nested_match = (
+                        close_end,
+                        wrapped("sub" if marker == "!!" else "sup", content.strip()),
+                    )
+                    break
+            search_at = close_at + len(outer_close)
+        if nested_match is not None:
+            i, token = nested_match
+            out.append(token)
+            continue
+
+        cross = match_cross(i, marker)
+        if cross is not None:
+            i, token = cross
+            out.append(token)
+            continue
+
+        chain = match_chain(i, marker, "sub" if marker == "!!" else "sup")
+        if chain is not None:
+            i, token = chain
+            out.append(token)
+            continue
+
+        if marker == "#":
+            # ``#value!!`` hides both wrappers and superscripts value.
+            close = staged.find("!!", i + 1)
+            competing = staged.find("#", i + 1)
+            close_boundary = close >= 0 and (
+                close + 2 >= len(staged)
+                or not (staged[close + 2].isalnum() or staged[close + 2] == "_")
+            )
+            if close_boundary and (competing < 0 or close < competing):
+                value = staged[i + 1:close]
+                if value and "\n" not in value:
+                    out.append(wrapped("sup", value.strip()))
+                    i = close + 2
+                    continue
+        else:
+            # ``!!value#`` hides both wrappers and subscripts value.
+            close = staged.find("#", i + 2)
+            competing = staged.find("!!", i + 2)
+            close_boundary = close >= 0 and (
+                close + 1 >= len(staged)
+                or not (staged[close + 1].isalnum() or staged[close + 1] == "_")
+            )
+            if close_boundary and (competing < 0 or close < competing):
+                value = staged[i + 2:close]
+                if value and "\n" not in value:
+                    out.append(wrapped("sub", value.strip()))
+                    i = close + 1
+                    continue
+
+        # Slash-prefix forms hide the leading marker and continue until space.
+        slash_pattern = r"!!([^\s!]+/[^\s]+)" if marker == "!!" else r"#([^\s#]+/[^\s]+)"
+        slash_match = re.match(slash_pattern, staged[i:])
+        if slash_match:
+            out.append(wrapped("sub" if marker == "!!" else "sup", slash_match.group(1)))
+            i += slash_match.end()
+            continue
+
+        # Ordinary prefix forms keep their visible marker inside the script.
+        prefix_pattern = r"!!([A-Za-z0-9][^\s!]*)" if marker == "!!" else r"#([A-Za-z0-9][^\s#]*)"
+        prefix_match = re.match(prefix_pattern, staged[i:])
+        if prefix_match:
+            out.append(wrapped(
+                "sub" if marker == "!!" else "sup",
+                prefix_match.group(1),
+                keep_prefix=marker,
+            ))
+            i += prefix_match.end()
+            continue
+
+        out.append(marker)
+        i += len(marker)
+
+    return "".join(out), tokens
+
+
 def _inline_markdown(safe_text: str, theme: Theme, *, allow_links: bool = True) -> str:
     """Render a safe, intentionally small inline Markdown subset.
 
@@ -604,6 +1121,9 @@ def _inline_markdown(safe_text: str, theme: Theme, *, allow_links: bool = True) 
             return f"@@SWAR_LINK_{len(link_tokens) - 1}@@"
         staged = re.sub(r"\[([^]\n]+)\]\(((?:https?://|www\.)[^\s)]+)\)", hold_link, staged, flags=re.IGNORECASE)
 
+    staged = _replace_inline_arrows(staged)
+    staged, script_tokens = _protect_super_sub_markup(staged)
+
     staged = re.sub(r"___(.+?)___", r"<u>\1</u>", staged)
     staged = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", staged)
     staged = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", staged)
@@ -612,6 +1132,8 @@ def _inline_markdown(safe_text: str, theme: Theme, *, allow_links: bool = True) 
     staged = re.sub(r"(?<!~)~(?!~)(.+?)(?<!~)~(?!~)", r"<del>\1</del>", staged)
     staged = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<em>\1</em>", staged)
 
+    for index, value in enumerate(script_tokens):
+        staged = staged.replace(f"@@SWAR_SCRIPT_{index}@@", value)
     for index, value in enumerate(link_tokens):
         staged = staged.replace(f"@@SWAR_LINK_{index}@@", value)
     for index, value in enumerate(code_tokens):
@@ -659,6 +1181,72 @@ a {{ color: {theme.link}; text-decoration: none; font-weight: 800; }}
 a:hover {{ text-decoration: underline; }}
 .spoken {{ border-left: 4px solid {theme.border}; padding: 8px 14px; background: {theme.panel}; border-radius: 0 10px 10px 0; margin-bottom:16px; }}
 .plain {{ padding: 4px 10px; margin-bottom:14px; }}
+.indent-four {{ border-left:3px dotted {theme.border}; padding-left:14px; }}
+.swar-vertical-gap {{ display:block; min-height:1px; }}
+.page-break-gap {{ border-top:1px dotted {theme.border}; border-bottom:1px dotted {theme.border}; }}
+.golden-line {{ background:{theme.panel}; border-radius:8px; padding:8px 12px; margin:10px 0; font-weight:850; }}
+.golden-prefix {{ color:{theme.text}; }}
+.golden-dim .golden-highlight {{ color:{DIM_GOLD}; }}
+.golden-bright {{ color:{BRIGHT_GOLD}; border:2px solid {BRIGHT_GOLD}; text-align:center; font-size:20px; }}
+.attention-red {{ color:{ATTN_RED}; border-left:8px solid {ATTN_RED}; border-right:8px solid {ATTN_RED}; background:{theme.panel}; padding:10px 14px; margin:12px 0; font-weight:1000; text-align:center; }}
+.attention-arrows {{ letter-spacing:2px; }}
+.story-arc-divider {{ display:flex; align-items:center; text-align:center; margin:28px 0 18px; color:{STORY_ARC_COLOR}; }}
+.story-arc-divider::before, .story-arc-divider::after {{ content:""; flex:1; border-bottom:4px double {STORY_ARC_COLOR}; }}
+.story-arc-divider span {{ padding:0 14px; color:{STORY_ARC_COLOR}; font-weight:1000; letter-spacing:2px; }}
+.story-arc-divider.compact {{ margin:30px 6% 26px; opacity:0.92; }}
+.story-arc-divider.compact::before, .story-arc-divider.compact::after {{ border-bottom-width:2px; border-bottom-style:solid; }}
+.story-arc-divider.compact span {{ font-size:12px; letter-spacing:1.4px; }}
+.arc-card {{ border:4px solid {STORY_ARC_COLOR}; border-radius:14px; background:{theme.panel}; margin:18px 0 26px; padding:12px; }}
+.story-screenplay-card {{ box-shadow:0 0 0 2px {theme.border} inset; }}
+.arc-title {{ color:{theme.title}; text-align:center; font-size:28px; font-weight:1000; border-bottom:2px solid {STORY_ARC_COLOR}; padding:6px; }}
+.story-base-table, .story-data-table {{ width:100%; border-collapse:collapse; margin:10px 0 16px; background:{theme.bg}; font-family:"DejaVu Sans Mono", monospace; }}
+.story-base-table th, .story-base-table td, .story-data-table th, .story-data-table td {{ border:1px solid {theme.border}; padding:7px 9px; vertical-align:top; }}
+.story-base-table th, .story-data-table th {{ color:{STORY_ARC_COLOR}; background:{theme.panel}; text-align:left; font-size:13px; letter-spacing:0.7px; }}
+.story-base-table td {{ color:{theme.text}; }}
+.story-data-label {{ color:{theme.highlight}; font-weight:800; white-space:nowrap; }}
+.arc-stage, .arc-data, .arc-map {{ border-left:5px solid {theme.highlight4}; background:{theme.bg}; margin:12px 0; padding:10px 12px; }}
+.arc-complete {{ border-left-color:{GREEN_ARROW}; }}
+.arc-start {{ border-left-color:{BRIGHT_GOLD}; }}
+.story-stage-label, .story-subtitle {{ color:{STORY_ARC_COLOR}; font-weight:1000; text-align:center; letter-spacing:1.2px; padding:3px 0 8px; }}
+.arc-stage .header-card {{ margin:4px 0 12px; }}
+.arc-stage .arrow-title, .arc-stage .arrow-descriptor, .arc-stage .arrow-major {{ margin-left:0 !important; }}
+.story-conversation {{ border:3px solid {STORY_ARC_COLOR}; border-radius:12px; background:{theme.bg}; padding:0 10px 10px; margin:20px 0; overflow:hidden; }}
+.story-convo-rail {{ display:flex; justify-content:center; align-items:center; gap:24px; color:{STORY_ARC_COLOR}; border-bottom:3px double {STORY_ARC_COLOR}; padding:8px 6px; margin:0 -10px 12px; letter-spacing:4px; font-size:17px; }}
+.story-convo-rail span {{ font-size:24px; font-weight:1000; }}
+.story-convo-end {{ color:{STORY_ARC_COLOR}; border-top:3px double {STORY_ARC_COLOR}; text-align:center; font-weight:1000; letter-spacing:3px; padding:9px 6px 1px; margin:12px -10px 0; }}
+.story-talk-row {{ width:100%; border-collapse:separate; border-spacing:0; margin:11px 0; table-layout:fixed; }}
+.story-talk-main {{ background:{theme.panel}; border:2px solid {theme.border}; padding:11px 14px; vertical-align:middle; }}
+.story-talk-row.left .story-talk-main {{ border-left-width:7px; border-radius:10px 0 0 10px; text-align:left; }}
+.story-talk-row.right .story-talk-main {{ border-right-width:7px; border-radius:0 10px 10px 0; text-align:right; }}
+.story-talk-row.center .story-talk-main {{ border-left-width:5px; border-right-width:5px; border-radius:10px; text-align:center; }}
+.story-talk-row.thought .story-talk-main {{ border-style:dashed; font-style:italic; }}
+.story-talk-buffer {{ width:46px; font-size:31px; font-weight:1000; text-align:center; vertical-align:middle; }}
+.story-speaker-inline {{ font-size:15px; font-weight:1000; letter-spacing:0.8px; }}
+.story-speech {{ color:{theme.text}; font-size:21px; line-height:1.55; }}
+.story-center-speaker {{ font-size:14px; font-weight:1000; letter-spacing:1.5px; margin-top:7px; text-align:center; }}
+.story-talk-target {{ color:{theme.muted}; font-size:12px; margin-top:7px; font-family:"DejaVu Sans Mono", monospace; }}
+.story-script-markup {{ border:2px dotted {STORY_ARC_COLOR}; background:{theme.bg}; border-radius:10px; padding:10px 12px; margin:20px 0; }}
+.story-script-markup .important-table, .story-script-markup .fancy-box {{ margin-left:0 !important; }}
+.story-notice {{ text-align:center; color:{theme.text}; border:2px solid {STORY_DIRECTIVE_COLOR}; background:{theme.panel}; border-radius:10px; padding:12px 16px; margin:46px 8%; line-height:1.65; }}
+.story-notice-label {{ color:{STORY_DIRECTIVE_COLOR}; font-size:12px; font-weight:1000; letter-spacing:1.2px; margin-bottom:8px; }}
+.story-notice-target {{ color:{theme.muted}; font-size:12px; margin-top:8px; }}
+.story-directive {{ margin:48px 0; padding:4px 0; }}
+.story-directive-grid {{ border-collapse:separate; border-spacing:0; table-layout:fixed; position:relative; }}
+.story-directive-box {{ border:2px solid {STORY_DIRECTIVE_COLOR}; background:{theme.panel}; padding:13px; min-height:64px; text-align:center; vertical-align:middle; }}
+.story-left-box {{ border-radius:11px 0 0 11px; }}
+.story-right-box {{ border-radius:0 11px 11px 0; }}
+.story-directive-label {{ color:{theme.muted}; font-size:11px; font-weight:900; letter-spacing:1px; margin-bottom:7px; }}
+.story-directive-arrow {{ position:relative; z-index:3; width:58px; min-width:58px; height:58px; line-height:58px; text-align:center; vertical-align:middle; border-radius:50%; border:3px solid {STORY_DIRECTIVE_COLOR}; background:{theme.bg}; color:{STORY_DIRECTIVE_COLOR}; font-size:34px; font-weight:1000; }}
+.story-option {{ display:flex; align-items:center; gap:10px; border:2px solid {theme.highlight4}; background:{theme.panel}; padding:9px 12px; margin:10px 5%; border-radius:9px; }}
+.story-option b {{ color:{theme.highlight4}; min-width:78px; }}
+.story-option-marker {{ color:{theme.highlight4}; font-size:22px; }}
+.story-option.mandatory {{ border-color:{ATTN_RED}; }}
+.story-option.mandatory b, .story-option.mandatory .story-option-marker {{ color:{ATTN_RED}; }}
+.story-data-group {{ margin:16px 0; }}
+.arc-empty {{ color:{theme.muted}; font-style:italic; }}
+.arc-warnings {{ color:{ATTN_RED}; border:1px dashed {ATTN_RED}; padding:7px; margin-top:8px; }}
+sup {{ font-size:72%; vertical-align:super; line-height:0; color:{theme.highlight3}; }}
+sub {{ font-size:72%; vertical-align:sub; line-height:0; color:{theme.highlight4}; }}
 .bang-notice {{ color:{theme.important}; border: 2px dashed {theme.important}; background:{theme.panel}; padding:10px; border-radius:10px; font-weight:800; text-align:center; }}
 .divider {{ display:flex; align-items:center; text-align:center; margin: 22px 0; color:{theme.muted}; }}
 .divider::before, .divider::after {{ content:""; flex:1; border-bottom: 5px solid {theme.border}; }}
