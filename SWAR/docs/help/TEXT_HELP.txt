@@ -1,0 +1,39 @@
+SWAR PLAIN TEXT HELP
+====================
+
+A *.txt file can remain completely plain. SWAR does not require markup.
+
+RECOMMENDED USES
+----------------
+- Notes and teleprompter copy.
+- Drafts that may later become *.script.
+- Readable fallback documentation.
+- Simple lists or dialogue.
+
+OPTIONAL SWAR BEHAVIOR
+----------------------
+SWAR still recognizes forgiving marks in *.txt when you use them:
+
+  "Spoken line."
+  >>>> SECTION TITLE <<<<
+  A -> B
+  -> Four-space Reader indent
+  value #2 and value !!2
+
+Use a backslash to keep a leading mark literal.
+
+EDITOR BEHAVIOR
+---------------
+- Right-click moves the caret.
+- Spell Check suggestions appear in the context menu.
+- Emoji inserts inline.
+- Find/Search works in the current tab.
+- Save can convert the same content to *.script, *.md, *.txt, or *.arcs.
+
+TELEPROMPTER
+------------
+Enable Tools > Teleprompter. The center slider is stopped at 0, negative values move backward, and positive values move forward. Quick buttons select 0.5x, 1x, 1.5x, and 2x.
+
+PLAIN-TEXT SAFETY
+-----------------
+The source stays ordinary UTF-8. Reader styling does not encrypt or remove private content.

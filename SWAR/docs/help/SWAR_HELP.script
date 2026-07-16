@@ -1,0 +1,110 @@
+SWAR HELP:: v0.7.1-rc1-r3: Program Guide
+
+>>>> WHAT SWAR IS <<<<
+
+"SWAR is a local-first Script Writer and Reader for presentation-aware plain text."
+
+- *.script
+  "Custom SWAR Script Markup and Extended Markdown."
+- *.md
+  "Markdown with optional SWAR additions."
+- *.txt
+  "Plain text with forgiving optional rendering."
+- *.arcs
+  "Story and event integration records."
+
+>>>> MODES <<<<
+
+>> READER <<
+"Clean rendered output. Editor and Arc buttons are hidden."
+
+>> EDITOR <<
+"Source-only writing with line numbers, syntax highlighting, context menus, spell checking, snippets, and emoji."
+
+>> SPLIT <<
+"Editor on the left and rendered Reader output on the right."
+
+>> STORY <<
+"Split-style editing for *.arcs. Editor tools and Arc tools are both visible."
+
+>>>> DYNAMIC TOOLBAR <<<<
+
+"The first row holds program controls on the left and Theme / Mode / Network on the right. Small edge padding keeps Open and LOCAL away from the window wall, and | markers separate neighboring controls."
+
+"The second row is reserved for authoring tools. Reader hides it. Editor and Split show the normal SWAR inserts. Story shows the normal inserts, then |:|, then Arcs, Story, Arc Data, and Phrases. Enter Story with the far-right Mode dropdown; there is no duplicate center Story Mode button."
+
+>>>> TOOLS MENU <<<<
+
+- Find / Search
+  "Search the current tab."
+- Spell Check
+  "Underline unknown words. Right-click an underlined word for local correction suggestions."
+- Linked Scrolling
+  "In Split or Story, sync the Reader position to the editor position."
+- Teleprompter
+  "Show the automatic scrolling control bar."
+- Clean Start
+  "Next launch begins with one empty tab instead of starter content."
+- Help
+  "Choose one help file or Load All."
+
+>>>> RIGHT-CLICK BEHAVIOR <<<<
+
+"When no text is selected, right-click press moves the caret to that location. Releasing without a linked-scroll gesture opens the normal edit menu."
+
+"When text is already selected, right-click preserves the selection so Copy, Cut, and other selection actions remain available. Left-clicking outside the menu cancels it. Right-clicking a new editor location replaces the old menu with a new one."
+
+"When Spell Check is on and the clicked word is unknown, suggested spellings appear at the bottom of the menu."
+
+>>>> LINKED SCROLLING <<<<
+
+"Turn on Tools > Linked Scrolling to make the Editor the scrolling baseline in Split or Story. Mouse-wheel and page-key movement behaves the same over either pane."
+
+"The Reader follows source-line anchors embedded in the rendered output. Tall Important boxes, Story cards, and seven-line or thirteen-line gaps are included in the mapping instead of estimated only by scrollbar percentages."
+
+"For temporary linked movement, hold the right mouse button and scroll in Split or Story. Using the held gesture suppresses the context menu."
+
+"The Editor and Reader each have a bottom pane scroller for independent fine adjustment. Split and Story add a third shared bottom scroller that always moves both panes from the Editor baseline."
+
+"Outside Split or Story, the same scrolling gesture remains ordinary scrolling."
+
+>>>> TELEPROMPTER <<<<
+
+"Turn on Tools > Teleprompter to reveal the dynamic control bar."
+
+- Pause
+  "Either Pause checkbox controls the same state."
+- Speed slider
+  "Center is 0. Left is reverse. Right is forward."
+- 0.5x / 1x / 1.5x / 2x
+  "Quick forward speed buttons."
+
+| Key | Result |
+| --- | --- |
+| p | Pause or play |
+| o | Set 1x |
+| l | Next speed stop |
+| k | Previous speed stop |
+| i | Temporary 3-second pause |
+| u | Temporary 5-second pause |
+| j | Temporary 10-second pause |
+| n | Temporary 30-second pause |
+
+"Keys do not override normal typing while the caret is inside the editor or a text input."
+
+>>>> SAVE, RELOAD, REFRESH <<<<
+
+"Save, reload, refresh, and Split/Story preview updates preserve the approximate editor and Reader position."
+
+"Save supports *.script, *.md, *.txt, and *.arcs."
+
+>>>> EMOJI <<<<
+
+"Emoji inserts exactly at the caret. SWAR does not add a newline before or after the emoji."
+
+>>>> PRIVACY <<<<
+
+>>!!
+ "Reader masking does not delete secrets from the source file."
+ "Inspect raw files before public upload."
+!! !! !!<<

@@ -1,0 +1,145 @@
+SCRIPT HELP:: v0/v0-ex: SWAR Markup Guide
+
+>>>> BASIC STRUCTURE <<<<
+
+"A *.script file is normal UTF-8 text. Use only the marks you need."
+
+>> HEADERS <<
+
+```text
+3D Changes Perspectives:: Episode Name: Details
+URL: https://example.com
+key: private-value
+CHAT TOKEN: private-value
+META DATA: tags
+```
+
+"Recognized private values are masked in Reader output, not removed from source."
+
+>>>> CLASSIC ARROW LEVELS <<<<
+
+| Source | Purpose |
+| --- | --- |
+| >> DATA << | Data/supporting line |
+| >>> VERBATIM <<< | Exact cue or verbatim line |
+| >>>> TITLE <<<< | Section title |
+| >>>>> DESCRIPTOR <<<<< | Descriptor |
+| >>>>>> EXPLAINER <<<<<< | Explanation |
+| >>>>>>> MAJOR <<<<<<< | Major explainer |
+
+>>>> IMPORTANT BLOCKS <<<<
+
+```text
+>>!!
+ "Important text."
+!! !! !!<<
+```
+
+"A quote is removed only when the same line contains one complete outer quote pair. A meaningful unmatched final quote remains visible."
+
+>>>> SPOKEN TEXT, DIVIDERS, SOURCES <<<<
+
+```text
+"Spoken text."
+
+--- SECTION NAME ---
+
+- https://example.com/page
+  "Source notes."
+
+- ../local-file.pdf
+```
+
+>>>> INLINE FANCY ARROWS <<<<
+
+"Aliases change only when content already appears before them on that line."
+
+```text
+right -> left <- up ^-^ down v-v
+north-east ^-> south-east v-> south-west <-v north-west <-^
+```
+
+"Reader: right → left ← up ↑ down ↓ north-east ↗ south-east ↘ south-west ↙ north-west ↖"
+
+>>>> FOUR-SPACE INDENT <<<<
+
+```text
+-> This line gains four spaces of Reader indentation.
+```
+
+>>>> SEVEN-LINE GAP <<<<
+
+```text
+######## .. <<<<<<<
+```
+
+"Use six or more hashes, only special punctuation in the middle, and 3–9 trailing left arrows."
+
+>>>> THIRTEEN-LINE PAGE BREAK <<<<
+
+```text
+###### >> .. <<
+```
+
+>>>> GOLDEN TEXT <<<<
+
+```text
+###### Context => Dim-golden continuation <<<<<
+###### !Bright Golden Case-Sensitive Text! <<<<
+```
+
+>>>> ATTENTION RED <<<<
+
+```text
+#########  ALL CAPS ATTENTION <<<<<<
+```
+
+"Use 2–4 spaces before the uppercase text and six final left arrows."
+
+>>>> SUPERSCRIPT AND SUBSCRIPT <<<<
+
+```text
+Visible prefixes: value #12 and value !!4
+Hidden slash prefixes: #12/value and !!3/value
+Hidden wrappers: #upper text!! and !!lower text#
+Cross groups: #upper!!lower# and !!lower#upper!!
+Chains: #a#b#c# and !!a!!b!!c!!
+Nested: #outer !!inner#!! and !!outer #inner!!#
+```
+
+>>>> EXTENDED MARKDOWN <<<<
+
+- H1 through H6 headings.
+- Bold, italic, underline, strike, and inline code.
+- Blockquotes, tables, ordered/task/custom lists.
+- Fancy fenced boxes.
+- Three-or-more blank-line paragraph separators.
+- Copy-safe inline links.
+- Backslash escaping.
+
+>>>> TRAILING COLOR PROFILES <<<<
+
+```text
+# Heading [#4fd1ff]
+"Spoken" (rgb(20, 160, 240))
+>> ARROW << (rgba(255, 80, 80, 0.72))
+```
+
+"Use \`! before a valid color token to display it literally instead of activating it."
+
+>>>> ESCAPING <<<<
+
+```text
+\# not a heading
+\- not a list
+\> not a blockquote
+\* literal star
+\| literal table pipe
+```
+
+>>>> AUTHORING RULE <<<<
+
+>>!!
+ "Keep the raw source readable even without SWAR."
+ "Use presentation marks to clarify meaning, not to hide it."
+!! !! !!<<

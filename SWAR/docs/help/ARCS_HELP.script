@@ -1,0 +1,144 @@
+ARCS HELP:: v0.7.1-rc1-r3 Story Mode and Screenplay Reader Output
+
+>>>> WHAT AN ARCS FILE IS <<<<
+
+"An *.arcs file contains one or more story/event integration records. Each nonblank source line is one complete seven-field Arc record."
+
+```text
+name||estimated||zone_type||***start message***||$map reference#||arc data||***completion message***
+```
+
+>>>> MODE RULES <<<<
+
+| Mode | *.arcs behavior |
+| --- | --- |
+| Reader | Shows the complete formatted Story Arc output; no editing buttons are visible |
+| Editor | Source-only editing; general editor buttons are available, but Arc insert buttons are hidden |
+| Split | Editor-led linked source/output view; general editor buttons are available, but Arc insert buttons are hidden |
+| Story | Two-pane Arc editing view; both general editor buttons and Arc-specific insert buttons are visible |
+
+"Opening an *.arcs file in SWAR Standard selects Story mode automatically. You can still switch the same tab to Reader or Split to read the formatted screenplay output."
+
+>>>> FIELD GUIDE <<<<
+
+| Field | Meaning |
+| --- | --- |
+| name | Arc title, normally 18 characters or fewer |
+| estimated | Numeric M:S:m value such as 3:2:3 |
+| zone_type | Safe, Crawl, Fight, Mix0, Mix1, Mix2, Mix3, Mixed |
+| start message | Opening lore between triple stars |
+| map reference | Imported `$...#` or generated `#...!` map reference |
+| arc data | Story, entities, triggers, bindings, options, and cause/effect relays |
+| completion message | Ending text between triple stars |
+
+>>>> SCRIPT MARKUP INSIDE STORY STAGES <<<<
+
+"Opening and completion fields can use normal SWAR *.script presentation marks. Because one Arc occupies one physical line, type a literal `\n` where the Reader should begin another embedded script line."
+
+```arcs
+***>>>> ARRIVAL <<<<\n"A voice calls from the gate."***
+```
+
+"Headings, arrows, quoted spoken blocks, inline Markdown, colors, and other safe SWAR Reader styling are rendered inside the OPENING and COMPLETION areas."
+
+>>>> TALKER AND STORY WRAPPERS <<<<
+
+```text
+Alice: "Speech from the left speaker"
+"Speech from the right speaker" :Bob
+Carol: "A third speaker is assigned the centered position"
+\Legacy user speech\
+-Legacy NPC speech-
+/User's Thoughts/
+_Noticed actions_
+->'CHARACTER_NAME'
+->data_phrase
+```
+
+"A conversation is enclosed by a top !! CONVO !! rail and a bottom CONVO END rail. The first new speaker is placed left, the second right, and the third center. Additional new speakers repeat left, right, center. A repeated speaker keeps the same position and edge color for the Arc."
+
+"Left speech shows NAME: before the quote and one colored !! edge on the right. Right speech shows :NAME after the quote and one colored !! edge on the left. Center speech places the name below the quote and shows colored !! edges on both sides."
+
+"Legacy user speech and thoughts still begin on the left. Legacy NPC speech begins on the right. A character or phrase pointer immediately after speech, thought, or noticed-action content becomes a small DIRECTED TO label."
+
+>>>> SCRIPT MARKUP INSIDE ARC DATA <<<<
+
+"Arc Data can also contain normal *.script block markup. Use a literal `\n` between embedded source lines because one Arc record remains one physical file line."
+
+```arcs
+>>>> SCENE CUE <<<<\n"A normal spoken block."\n>>!!\n"An Important story detail."\n!! !! !!<<
+```
+
+"Arrow titles, Important boxes, quoted speech, indentation, inline arrows, color profiles, and deliberate gap marks use the same Reader renderer as a normal *.script file. These presentation blocks can appear between conversations, plot points, directives, options, and common data."
+
+>>>> DIRECTIVES AND TWIN ACTION / RESULT BOXES <<<<
+
+```text
+ACTION -> RESULT
+RESULT <- ACTION
+ACTION >> LINGERING RESULT
+LINGERING RESULT << ACTION
+```
+
+"A directive with text on both sides becomes two split boxes. The direction glyph overlaps the center between them. Instant and lingering arrows retain distinct glyphs."
+
+"Directives and plot notices receive large vertical breathing room and special STORY ARC dividers before and after the presentation object."
+
+>>>> OPTIONS AND REQUIRED EVENTS <<<<
+
+```text
+^interactable event^
+*mandatory event*
+```
+
+"Interactable events render as OPTION rows. Mandatory events render as red REQUIRED rows. These are display interpretations only; the original Arc Data remains unchanged."
+
+>>>> GROUPED COMMON DATA <<<<
+
+"Bindings, locations, entities, expected drops, rates, and relay phrases are grouped into a common-data table so the screenplay flow stays readable."
+
+```text
+[event/entity/object {action}]
+{action/entity/object [event]}
+(event/action/object (entity))
+@{LOCATION}
+@{__RANDOM__}
+@{"X"}
+'monster or character name'
+~expected object drop~
+drop%25
++spawn_rates40
+enter touch kill exit
+```
+
+>>>> MAP REFERENCES <<<<
+
+```text
+$imported map#
+$generate map!
+```
+
+>>>> COMPLETE SCREENPLAY EXAMPLE <<<<
+
+```arcs
+Meet Guide||3:2:3||Safe||***>>>> ARRIVAL <<<<\n"A voice calls from the old gate."***||$imported town_gate#||enter; Alice: "We made it."; "Keep your voice down." :Bob; Carol: "I found the sigil."; Dana: "I will watch the gate."; Alice: "Move now."; _The gate opens_; SEARCH GATE -> CLUE FOUND; >>>> SCENE CUE <<<<\n"Normal *.script markup works inside Arc Data."\n>>!!\n"This is an Important story detail."\n!! !! !!<<; ^Ask about the sigil^; *Follow the guide*; [enter/user {unlock}]; @{GATE}; ~brass key~; drop%25||***>>>> ARC COMPLETE <<<<\n"The guide joins the route."***
+```
+
+>>>> VALIDATION <<<<
+
+"Story cards show warnings for missing fields, unusual time forms, unknown zone types, overly long names/messages, or questionable map references. Warnings do not destroy or rewrite the source line."
+
+>>>> ORIGINAL REFERENCES <<<<
+
+- docs/arcs/IntegratorAssist.txt
+- docs/arcs/arc.help
+- docs/arcs/arc.guide
+- docs/arcs/fullphrases.list
+- docs/arcs/fullsymbol.list
+- docs/arcs/fulldata.list
+
+>>>> INCLUDED EXAMPLES <<<<
+
+- examples/example.script
+- examples/story_screenplay_demo.arcs
+- examples/story_mode_demo.arcs
