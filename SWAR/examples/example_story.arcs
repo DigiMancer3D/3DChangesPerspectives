@@ -1,0 +1,19 @@
+Awakening||0:00:20||Safe||***Heartbeat lost; avatar in idle pose***||$stage#||\USER: "Standing still. I'll be right back."\n/There is a small ping of absence — the world ticks on without my pilot./||***Awaiting return***
+
+Empty_Stage||0:00:30||Crawl||***Lights hum across an empty green-screen plane***||$backstage#||"The lights stretch long shadows." :NARRATOR\n/This isn’t the studio I programmed — it’s a gap between frames./\n- JANITOR - "You don't belong here, kid."||***Listen for movement***
+
+Hallway_Infinite||0:00:40||Crawl||***Corridor folds into itself in pale wallpaper echoes***||$backrooms_level1#||/No floor plan. No exit signs. Only yellowed walls that swallow sound./\n\USER: "This... this isn't my rig. Where did the player go?"\n- GUIDE - "You walked away. The feed went quiet. We stole a minute."||***Keep moving***
+
+Whispering_Janitor||0:00:35||Crawl||***A figure wipes a nonexistent scuff from an unending wall***||$backrooms_level2#||- JANITOR - "Most folks get bored and leave. Others get curious and get lost."\n\USER: "I didn't mean— I thought I paused the stream."\n/He remembers the last button press. He remembers the smell of solder and coffee./||***Follow the footsteps***
+
+Flicker_Sentinel||0:00:25||Fight||***A flicker coalesces into a silhouette with wrong proportions***||$backrooms_security#||- SENTINEL - "Motion without an owner trips the nets. You are an unmoored puppet."\n/Feet pinch into the linoleum; the avatar tastes static./\USER: "I can still feel the animator when I twitch."||***Avoid sensors***
+
+Memory_Loop||0:00:30||Mix1||***Screens in the wall play captured moments out of order***||$memory_loop#||"You always left the kettle on." :NARRATOR\n\USER: "I left it on? No— I remember closing it."\n/Her phantom hands reach for things that are no longer there./\n->'PHOTOFRAME'\n"A photo: the user, laughing, tethered to a chair."||***Keep a memory for later***
+
+Clue_Map||0:00:40||Mix0||***A scrawl of arrowed scribbles behind taped wallpaper***||$torn_map#||- GUIDE - "Maps here lie. But the marks show where people hammered at the seams."\n\USER: /If I follow the wrong notch, I circle back. If I follow the right one—/\n"FOLLOW THE VOX"\n->'FOLLOW_THE_VOX'||***A faint hum underfoot***
+
+Confrontation||0:00:30||Fight||***The corridor tightens; a door that shouldn't exist yawns***||$rust_door#||- SENTINEL - "Return to your tether or the rooms will take you apart."\n- JANITOR - "They fix what they like. You look shabby."\n\USER: /My internal voice runs like quicklight: I'm not ready to become scrap. Stay still. Breathe./\n"I won't leave you behind." :GUIDE||***Brace for a pull***
+
+The_Pull||0:00:25||Mix1||***A backward tug; an algorithm snags loose endpoints***||$mocap_node#||"A shadow hand hooks a line from the ceiling." :NARRATOR\n\USER: /He hears footsteps in the real room. A chair creaks, a backpack unzips./\n- BITNINJA - "Signal: user presence detected. Reclaiming avatar."\n"The rig rips like a seam being pulled tight." :SOUND_EFFECT||***Connection restored***
+
+Return||0:00:25||Safe||***The avatar slumps into a familiar pose, lights stable again***||$stage#||\USER: "—I'm back. Sorry, short walk, all good."\n/He tastes relief: hot air and the faint ozone of the rig. The avatar blinks as the mocap catches a real shoulder shift./\USER: "Bitninja picked up the motion. Thanks, system."\n***The avatar is home; the user is relieved and ready.***
