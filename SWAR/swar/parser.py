@@ -6,6 +6,8 @@ from typing import Any
 import re
 from urllib.parse import urlparse, unquote, parse_qs
 
+from .arc_tools import parse_arcs_text, parse_story_arc_data
+
 SECRET_KEYS = {"URL", "KEY", "CHAT TOKEN", "META", "META DATA"}
 URL_RE = re.compile(r"^(?:(?:https?|ftp)://|www\.)", re.IGNORECASE)
 BARE_URL_RE = re.compile(r"^\s*(?:(?:https?|ftp)://|www\.)\S+\s*$", re.IGNORECASE)
@@ -38,6 +40,16 @@ ESCAPED_TRAILING_COLOR_RE = re.compile(
     r"^(?P<body>.*?)\\`!\s*(?P<token>\[(?P<hex>#[0-9A-Fa-f]{3,8})\]|\((?P<rgb>rgba?\([^()\n]*\))\))\s*$",
     re.IGNORECASE,
 )
+
+# Hypertext / presentation marks added in v0.7.1. These are deliberately
+# recognized before Markdown headings so 6+ leading hashes can remain compact
+# presentation instructions without changing legacy heading behavior.
+PAGE_BREAK_RE = re.compile(r"^\s*#{6,}\s+>>(?P<middle>[^A-Za-z0-9]*?)<<\s*$")
+COMPACT_GAP_RE = re.compile(r"^\s*#{6,}\s*(?P<middle>[^A-Za-z0-9]*?)\s*(?P<arrows><{3,9})\s*$")
+GOLD_DIM_RE = re.compile(r"^\s*#{6}\s+(?P<prefix>.*?)\s*(?P<mark>=>)\s*(?P<gold>.*?)\s*(?P<arrows><{3,9})\s*$")
+GOLD_BRIGHT_RE = re.compile(r"^\s*#{6}\s+!(?P<gold>.+?)!\s*(?P<arrows><{3,9})\s*$")
+ATTN_RED_RE = re.compile(r'^\s*#{6,12}[ ]{2,4}(?P<text>[A-Z0-9][A-Z0-9 \t:;,.!?&\'"/()+_\-]*?)\s*(?P<arrows><{6})\s*$')
+INDENT4_RE = re.compile(r"^(?P<indent>[ \t]*)->\s+(?P<text>.+?)\s*$")
 
 
 def _trim_number(value: float) -> str:
@@ -179,7 +191,7 @@ class ScriptDoc:
 
     @property
     def section_count(self) -> int:
-        return sum(1 for b in self.blocks if b.kind in {"divider", "arrow_title", "legacy_label", "arrow_major_explainer"})
+        return sum(1 for b in self.blocks if b.kind in {"divider", "arrow_title", "legacy_label", "arrow_major_explainer", "arc_record", "attention_red"})
 
 
 class SwarParser:
@@ -191,6 +203,8 @@ class SwarParser:
         return self.parse(text, path=str(path))
 
     def parse(self, text: str, path: str = "") -> ScriptDoc:
+        if Path(path).suffix.lower() == ".arcs":
+            return _parse_arcs_document(text, path)
         doc = ScriptDoc(path=path)
         lines = text.splitlines()
         found_header = False
@@ -453,6 +467,64 @@ class SwarParser:
                 doc.blocks.append(Block("blank", "", idx, idx, raw=original_raw, indent=indent, level=_level_from_indent(indent)))
                 continue
 
+            page_break = PAGE_BREAK_RE.match(raw)
+            if page_break:
+                clear_numbered_counters()
+                append_block(Block(
+                    "vertical_gap", "", idx, idx, raw=original_raw, indent=indent,
+                    level=_level_from_indent(indent), attrs={"gap_lines": 13, "page_break": True},
+                ))
+                continue
+
+            compact_gap = COMPACT_GAP_RE.match(raw)
+            if compact_gap:
+                clear_numbered_counters()
+                append_block(Block(
+                    "vertical_gap", "", idx, idx, raw=original_raw, indent=indent,
+                    level=_level_from_indent(indent), attrs={"gap_lines": 7, "page_break": False},
+                ))
+                continue
+
+            gold_dim = GOLD_DIM_RE.match(raw)
+            if gold_dim:
+                append_block(Block(
+                    "golden_dim", gold_dim.group("prefix").strip(), idx, idx, raw=original_raw,
+                    indent=indent, level=_level_from_indent(indent),
+                    attrs={
+                        "prefix": gold_dim.group("prefix").strip(),
+                        "highlight": f'=> {gold_dim.group("gold").strip()} {gold_dim.group("arrows")}',
+                    },
+                ))
+                continue
+
+            gold_bright = GOLD_BRIGHT_RE.match(raw)
+            if gold_bright:
+                append_block(Block(
+                    "golden_bright", gold_bright.group("gold").strip(), idx, idx, raw=original_raw,
+                    indent=indent, level=_level_from_indent(indent),
+                    attrs={"highlight": f'{gold_bright.group("gold").strip()} {gold_bright.group("arrows")}'},
+                ))
+                continue
+
+            attention = ATTN_RED_RE.match(raw)
+            if attention:
+                append_block(Block(
+                    "attention_red", attention.group("text").strip(), idx, idx, raw=original_raw,
+                    indent=indent, level=_level_from_indent(indent),
+                    attrs={"arrows": attention.group("arrows")},
+                ))
+                continue
+
+            indent_mark = INDENT4_RE.match(raw)
+            if indent_mark:
+                display_indent = indent + 4
+                append_block(Block(
+                    "indent4", indent_mark.group("text"), idx, idx, raw=original_raw,
+                    indent=display_indent, level=_level_from_indent(display_indent),
+                    attrs={"indent_spaces": 4},
+                ))
+                continue
+
             # A previous '-' empty source marker can be completed by a URL/path on the next nonblank line.
             private_url_match = PRIVATE_URL_RE.match(raw)
             if private_url_match:
@@ -636,6 +708,30 @@ class SwarParser:
             ))
         doc.blocks = _collapse_extended_blank_runs(doc.blocks)
         return doc
+
+
+def _parse_arcs_document(text: str, path: str = "") -> ScriptDoc:
+    """Parse one-or-more seven-field .arcs records into Story cards."""
+    doc = ScriptDoc(path=path)
+    records, warnings = parse_arcs_text(text)
+    doc.warnings.extend(warnings)
+    for record in records:
+        attrs = {
+            "name": record.name,
+            "estimated": record.estimated,
+            "zone_type": record.zone_type,
+            "start_message": record.start_text,
+            "map_ref": record.map_ref,
+            "arc_data": record.arc_data,
+            "story_elements": parse_story_arc_data(record.arc_data),
+            "confirm_message": record.confirm_text,
+            "record_warnings": list(record.warnings),
+        }
+        doc.blocks.append(Block(
+            "arc_record", record.name, record.line_number, record.line_number,
+            raw=record.raw, indent=0, level=0, attrs=attrs,
+        ))
+    return doc
 
 
 def _collapse_extended_blank_runs(blocks: list[Block]) -> list[Block]:
