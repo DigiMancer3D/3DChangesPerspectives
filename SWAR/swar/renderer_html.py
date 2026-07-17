@@ -20,7 +20,12 @@ STORY_CENTER_COLOR = "#ffd75a"
 STORY_DIRECTIVE_COLOR = "#8ce6a2"
 
 
-def render_doc_html(doc: ScriptDoc, theme_name: str = "Dark Mode", allow_online_links: bool = False) -> str:
+def render_doc_html(
+    doc: ScriptDoc,
+    theme_name: str = "Dark Mode",
+    allow_online_links: bool = False,
+    story_collapsed: set[str] | None = None,
+) -> str:
     theme = get_theme(theme_name)
     parts = [_html_head(theme, doc.header_first_line)]
     source_child_counts = _source_child_counts(doc.blocks)
@@ -42,7 +47,13 @@ def render_doc_html(doc: ScriptDoc, theme_name: str = "Dark Mode", allow_online_
         # gap marks without adding visible content.
         parts.append(f'<a name="swar-line-{max(1, int(block.line_start))}" style="font-size:0; line-height:0;">&#8203;</a>')
         fancy_variant = 1 if block.kind == "markdown_fenced_box" and last_real_kind in {"markdown_fenced_box", "arrow_title"} else 0
-        html = render_block(block, theme, allow_online_links=allow_online_links, fancy_variant=fancy_variant)
+        html = render_block(
+            block,
+            theme,
+            allow_online_links=allow_online_links,
+            fancy_variant=fancy_variant,
+            story_collapsed=story_collapsed,
+        )
         if html:
             parts.append(_apply_color_profile(html, block.attrs.get("color_profile"), theme))
 
@@ -186,7 +197,13 @@ def _apply_color_profile(html: str, color: str | None, theme: Theme, *, local: b
     return _COLORABLE_TAG_RE.sub(replace, html)
 
 
-def render_block(block: Block, theme: Theme, allow_online_links: bool = False, fancy_variant: int = 0) -> str:
+def render_block(
+    block: Block,
+    theme: Theme,
+    allow_online_links: bool = False,
+    fancy_variant: int = 0,
+    story_collapsed: set[str] | None = None,
+) -> str:
     kind = block.kind
     text = block.text or ""
     margin = min(80, max(0, block.level * 22))
@@ -227,7 +244,12 @@ def render_block(block: Block, theme: Theme, allow_online_links: bool = False, f
         return f'<p class="plain indent-four" style="margin-left:{margin}px">{_inline_markdown(escape(text), theme)}</p>'
 
     if kind == "arc_record":
-        return _render_arc_record(block, theme, allow_online_links=allow_online_links)
+        return _render_arc_record(
+            block,
+            theme,
+            allow_online_links=allow_online_links,
+            story_collapsed=story_collapsed,
+        )
 
     if kind == "header":
         href = _copy_href(text)
@@ -453,17 +475,34 @@ def _format_important_html(text: str, theme: Theme, line_colors: list[str | None
     return "\n".join(out) if out else '<div class="important-line"></div>'
 
 
-def _story_arc_divider(*, compact: bool = False) -> str:
+def _story_arc_divider(*, compact: bool = False, theme: Theme | None = None) -> str:
     cls = "story-arc-divider compact" if compact else "story-arc-divider"
-    return f'<div class="{cls}"><span>STORY ARC</span></div>'
+    color = STORY_ARC_COLOR
+    if theme is not None:
+        color = _story_palette(theme)[0]
+    border = f"2px solid {color}" if compact else f"4px double {color}"
+    return (
+        f'<table class="{cls}" width="100%" cellspacing="0" cellpadding="0" style="color:{color};">'
+        f'<tr><td class="story-divider-line" style="border-bottom:{border};"></td>'
+        f'<th style="color:{color};">STORY ARC</th>'
+        f'<td class="story-divider-line" style="border-bottom:{border};"></td></tr></table>'
+    )
 
 
-def _render_embedded_story_markup(text: str, theme: Theme, allow_online_links: bool = False) -> str:
-    """Render normal SWAR markup inside Story opening/completion fields.
+def _render_embedded_story_markup(
+    text: str,
+    theme: Theme,
+    allow_online_links: bool = False,
+    *,
+    suppress_header_card: bool = False,
+) -> str:
+    """Render normal SWAR markup inside Story fields and nested dialogue.
 
     Literal ``\\n`` sequences are accepted because one .arcs record occupies one
-    physical source line.  The embedded parse deliberately uses a .script path,
-    so it cannot recurse back into Arc-record parsing.
+    physical source line. The embedded parse deliberately uses a .script path,
+    so it cannot recurse into Arc-record parsing. For nested speech/thought, a
+    plain first line is rendered as ordinary content rather than a document
+    header card.
     """
     decoded = str(text or "").replace("\\n", "\n").strip()
     if not decoded:
@@ -471,7 +510,10 @@ def _render_embedded_story_markup(text: str, theme: Theme, allow_online_links: b
     embedded = SwarParser().parse(decoded, path="embedded_story.script")
     rendered: list[str] = []
     for item in embedded.blocks:
-        html = render_block(item, theme, allow_online_links=allow_online_links)
+        if suppress_header_card and item.kind == "header":
+            html = f'<p class="story-embedded-plain">{_inline_markdown(escape(item.text or ""), theme)}</p>'
+        else:
+            html = render_block(item, theme, allow_online_links=allow_online_links)
         if html:
             rendered.append(_apply_color_profile(html, item.attrs.get("color_profile"), theme))
     return "\n".join(rendered) if rendered else _inline_markdown(escape(decoded), theme)
@@ -481,43 +523,151 @@ def _story_inline(value: str, theme: Theme) -> str:
     return _inline_markdown(escape(str(value or "")), theme)
 
 
-def _story_speaker_color(index: int, theme: Theme) -> str:
-    palette = (
-        STORY_LEFT_COLOR, STORY_RIGHT_COLOR, STORY_CENTER_COLOR,
-        theme.highlight3, theme.highlight4, BRIGHT_GOLD,
+def _story_rgb(value: str, fallback: tuple[int, int, int] = (128, 128, 128)) -> tuple[int, int, int]:
+    return _hex_rgb(value, fallback=fallback)
+
+
+def _story_hex(rgb: tuple[int, int, int]) -> str:
+    return "#" + "".join(f"{max(0, min(255, int(channel))):02x}" for channel in rgb)
+
+
+def _story_luminance(value: str) -> float:
+    rgb = _story_rgb(value)
+    channels: list[float] = []
+    for channel in rgb:
+        point = channel / 255.0
+        channels.append(point / 12.92 if point <= 0.04045 else ((point + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def _story_mix(color: str, target: str, amount: float) -> str:
+    amount = max(0.0, min(1.0, float(amount)))
+    left = _story_rgb(color)
+    right = _story_rgb(target)
+    return _story_hex(tuple(round(a + (b - a) * amount) for a, b in zip(left, right)))
+
+
+def _story_solid_color(value: str | None, theme: Theme, fallback: str) -> str:
+    resolved = _qt_safe_profile_color(str(value or ""), theme)
+    return resolved[1] if resolved else fallback
+
+
+def _story_palette(theme: Theme) -> tuple[str, ...]:
+    """Build a deterministic speaker/section palette from the active theme.
+
+    Colors are taken from SWAR's existing theme highlight profiles, then moved
+    away from the current background when necessary. This keeps the Story view
+    readable in NIGHT/TERM/BLUE and in LIGHT/PAPER without adding a separate
+    hard-coded Story theme system.
+    """
+    candidates = (
+        theme.highlight,
+        theme.highlight2,
+        theme.highlight3,
+        theme.highlight4,
+        theme.highlight5,
+        theme.data,
+        theme.descriptor,
+        theme.explainer,
+        theme.major_explainer,
+        theme.fade_purple1,
+        theme.fade_green1,
+        theme.link,
     )
-    return palette[index % len(palette)]
+    bg = _story_solid_color(theme.bg, theme, "#000000")
+    bg_luma = _story_luminance(bg)
+    target = "#ffffff" if bg_luma < 0.45 else "#000000"
+    colors: list[str] = []
+    for candidate in candidates:
+        color = _story_solid_color(candidate, theme, STORY_ARC_COLOR)
+        if abs(_story_luminance(color) - bg_luma) < 0.24:
+            color = _story_mix(color, target, 0.48)
+        if color.casefold() not in {item.casefold() for item in colors}:
+            colors.append(color)
+    for fallback in (STORY_LEFT_COLOR, STORY_RIGHT_COLOR, STORY_CENTER_COLOR, STORY_DIRECTIVE_COLOR, BRIGHT_GOLD):
+        color = _story_solid_color(fallback, theme, fallback)
+        if color.casefold() not in {item.casefold() for item in colors}:
+            colors.append(color)
+    return tuple(colors) or (STORY_ARC_COLOR,)
 
 
-def _render_story_talk(item: dict[str, str], theme: Theme, *, slot: str, speaker_index: int) -> str:
+def _story_speaker_color(index: int, theme: Theme, sequence_step: int = 0) -> str:
+    palette = _story_palette(theme)
+    base = palette[index % len(palette)]
+    # Sequential lines from the same speaker gently brighten on dark themes and
+    # darken on light themes. The fifth line reflows to the base color; any
+    # speaker change also resets the sequence immediately.
+    step = max(0, int(sequence_step)) % 5
+    if step == 0:
+        return base
+    bg = _story_solid_color(theme.bg, theme, "#000000")
+    target = "#ffffff" if _story_luminance(bg) < 0.45 else "#000000"
+    return _story_mix(base, target, (0.075, 0.14, 0.205, 0.27)[step - 1])
+
+
+_STORY_BLOCK_MARK_RE = re.compile(
+    r'(?m)^\s*(?:>{2,}|#{1,6}\s+|`{3,}|---|\*{3,}\s*$|->\s+|!!(?:\s|$)|-{3,}\s*$)'
+)
+
+
+def _render_story_talk_content(value: str, theme: Theme, allow_online_links: bool = False) -> tuple[str, bool]:
+    decoded = str(value or "").replace("\\n", "\n").strip()
+    rich = "\n" in decoded or bool(_STORY_BLOCK_MARK_RE.search(decoded))
+    if rich:
+        return _render_embedded_story_markup(
+            decoded,
+            theme,
+            allow_online_links,
+            suppress_header_card=True,
+        ), True
+    return _story_inline(decoded, theme), False
+
+
+def _render_story_talk(
+    item: dict[str, str],
+    theme: Theme,
+    *,
+    slot: str,
+    speaker_index: int,
+    sequence_step: int = 0,
+    allow_online_links: bool = False,
+) -> str:
     slot = slot if slot in {"left", "right", "center"} else "center"
-    speaker = _story_inline(item.get("speaker", "TALKER"), theme)
-    text = _story_inline(item.get("text", ""), theme)
+    speaker_raw = str(item.get("speaker", "TALKER") or "TALKER").strip()
+    speaker = _story_inline(speaker_raw, theme)
+    text, rich = _render_story_talk_content(item.get("text", ""), theme, allow_online_links)
     target = str(item.get("target", "")).strip()
-    color = _story_speaker_color(speaker_index, theme)
+    color = _story_speaker_color(speaker_index, theme, sequence_step)
     target_html = ""
     if target:
         target_html = f'<div class="story-talk-target">TO&nbsp;→&nbsp;{_story_inline(target, theme)}</div>'
-    thought = " thought" if item.get("talk_type") == "thought" else ""
+    is_thought = item.get("talk_type") == "thought"
+    thought = " thought" if is_thought else " talk"
+    kind_label = "THOUGHT" if is_thought else ("RICH DIALOGUE" if rich else "DIALOGUE")
     left_buffer = "!!" if slot in {"right", "center"} else ""
     right_buffer = "!!" if slot in {"left", "center"} else ""
+    quote_open = "" if is_thought or rich else "&quot;"
+    quote_close = "" if is_thought or rich else "&quot;"
+    kind_badge = f'<div class="story-talk-kind" style="color:{color};">{kind_label}</div>'
     if slot == "left":
         body = (
-            f'<div class="story-speech"><span class="story-speaker-inline" style="color:{color};">{speaker}:</span> '
-            f'<span class="story-quote">&quot;{text}&quot;</span></div>{target_html}'
+            f'{kind_badge}<div class="story-speech"><span class="story-speaker-inline" style="color:{color};">{speaker}:</span> '
+            f'<span class="story-quote">{quote_open}{text}{quote_close}</span></div>{target_html}'
         )
     elif slot == "right":
         body = (
-            f'<div class="story-speech"><span class="story-quote">&quot;{text}&quot;</span> '
+            f'{kind_badge}<div class="story-speech"><span class="story-quote">{quote_open}{text}{quote_close}</span> '
             f'<span class="story-speaker-inline" style="color:{color};">:{speaker}</span></div>{target_html}'
         )
     else:
         body = (
-            f'<div class="story-speech story-center-speech"><span class="story-quote">&quot;{text}&quot;</span></div>'
+            f'{kind_badge}<div class="story-speech story-center-speech"><span class="story-quote">{quote_open}{text}{quote_close}</span></div>'
             f'<div class="story-center-speaker" style="color:{color};">{speaker}</div>{target_html}'
         )
+    safe_speaker = escape(speaker_raw, quote=True)
     return (
-        f'<table class="story-talk-row {slot}{thought} speaker-{speaker_index % 6}" width="100%" cellpadding="0" cellspacing="0">'
+        f'<table class="story-talk-row {slot}{thought} speaker-{speaker_index % 12}" '
+        f'data-story-speaker="{safe_speaker}" data-story-slot="{slot}" width="100%" cellpadding="0" cellspacing="0">'
         '<tr>'
         f'<td class="story-talk-buffer left-buffer" style="color:{color};">{left_buffer}</td>'
         f'<td class="story-talk-main" style="border-color:{color};">{body}</td>'
@@ -530,19 +680,37 @@ def _render_story_conversation(
     talks: list[dict[str, str]],
     theme: Theme,
     speaker_assignments: dict[str, tuple[str, int]],
+    allow_online_links: bool = False,
 ) -> str:
     if not talks:
         return ""
     rows: list[str] = []
+    previous_key = ""
+    sequence_step = 0
     for item in talks:
         key = str(item.get("speaker", "TALKER")).strip().casefold() or "talker"
+        if key == previous_key:
+            sequence_step += 1
+        else:
+            sequence_step = 0
+            previous_key = key
         slot, index = speaker_assignments[key]
-        rows.append(_render_story_talk(item, theme, slot=slot, speaker_index=index))
+        rows.append(_render_story_talk(
+            item,
+            theme,
+            slot=slot,
+            speaker_index=index,
+            sequence_step=sequence_step,
+            allow_online_links=allow_online_links,
+        ))
+    arc_color = _story_palette(theme)[0]
     return (
-        '<div class="story-conversation">'
-        '<div class="story-convo-rail"><span>!!</span><b>CONVO</b><span>!!</span></div>'
+        f'<div class="story-conversation" style="border-color:{arc_color};">'
+        '<table class="story-convo-rail-table" width="100%" cellspacing="0" cellpadding="0"><tr>'
+        f'<td style="color:{arc_color};">!!</td><th style="color:{arc_color};">CONVO</th><td style="color:{arc_color};">!!</td>'
+        '</tr></table>'
         + "".join(rows)
-        + '<div class="story-convo-end">CONVO END</div></div>'
+        + f'<div class="story-convo-end" style="color:{arc_color}; border-color:{arc_color};">CONVO END</div></div>'
     )
 
 
@@ -552,6 +720,7 @@ def _render_story_markup(value: str, theme: Theme, allow_online_links: bool = Fa
         + _render_embedded_story_markup(value, theme, allow_online_links)
         + '</div>'
     )
+
 
 def _render_story_directive(item: dict[str, str], theme: Theme) -> str:
     left = _story_inline(item.get("left", ""), theme)
@@ -563,12 +732,13 @@ def _render_story_directive(item: dict[str, str], theme: Theme) -> str:
     lingering = " lingering" if arrow in {">>", "<<"} else " instant"
     left_label = "RESULT / EFFECT" if backward else "ACTION / POINT"
     right_label = "ACTION / POINT" if backward else "RESULT / EFFECT"
+    color = _story_palette(theme)[min(3, len(_story_palette(theme)) - 1)]
     return (
         f'<div class="story-directive{direction}{lingering}">'
         '<table class="story-directive-grid" width="100%" cellspacing="0" cellpadding="0"><tr>'
-        f'<td class="story-directive-box story-left-box"><div class="story-directive-label">{left_label}</div>{left}</td>'
-        f'<td class="story-directive-arrow" title="{escape(arrow)}">{glyph}</td>'
-        f'<td class="story-directive-box story-right-box"><div class="story-directive-label">{right_label}</div>{right}</td>'
+        f'<td class="story-directive-box story-left-box" style="border-color:{color};"><div class="story-directive-label">{left_label}</div>{left}</td>'
+        f'<td class="story-directive-arrow" style="border-color:{color}; color:{color};" title="{escape(arrow)}">{glyph}</td>'
+        f'<td class="story-directive-box story-right-box" style="border-color:{color};"><div class="story-directive-label">{right_label}</div>{right}</td>'
         '</tr></table></div>'
     )
 
@@ -577,7 +747,11 @@ def _render_story_notice(item: dict[str, str], theme: Theme) -> str:
     text = _story_inline(item.get("text", ""), theme)
     target = str(item.get("target", "")).strip()
     target_html = f'<div class="story-notice-target">DIRECTED TO: {_story_inline(target, theme)}</div>' if target else ""
-    return f'<div class="story-notice"><div class="story-notice-label">DIRECTIVE / PLOT POINT</div>{text}{target_html}</div>'
+    color = _story_palette(theme)[min(4, len(_story_palette(theme)) - 1)]
+    return (
+        f'<div class="story-notice" style="border-color:{color};">'
+        f'<div class="story-notice-label" style="color:{color};">DIRECTIVE / PLOT POINT</div>{text}{target_html}</div>'
+    )
 
 
 def _render_story_option(item: dict[str, str], theme: Theme) -> str:
@@ -590,7 +764,7 @@ def _render_story_option(item: dict[str, str], theme: Theme) -> str:
 
 def _render_story_data_table(items: list[dict[str, str]], theme: Theme) -> str:
     if not items:
-        return ""
+        return '<div class="story-empty-section">No engine/common Arc Data tokens were detected.</div>'
     rows: list[str] = []
     for item in items:
         category = _story_inline(item.get("category", "Arc Data"), theme)
@@ -598,7 +772,7 @@ def _render_story_data_table(items: list[dict[str, str]], theme: Theme) -> str:
         value = _story_inline(item.get("text", ""), theme)
         rows.append(f'<tr><th>{category}</th><td class="story-data-label">{label}</td><td>{value}</td></tr>')
     return (
-        '<div class="story-data-group"><div class="story-subtitle">COMMON / ENGINE DATA</div>'
+        '<div class="story-data-group">'
         '<table class="story-data-table" width="100%" cellspacing="0" cellpadding="0">'
         '<tr><th>GROUP</th><th>TYPE</th><th>VALUE</th></tr>'
         + "".join(rows)
@@ -606,26 +780,16 @@ def _render_story_data_table(items: list[dict[str, str]], theme: Theme) -> str:
     )
 
 
-def _render_story_flow(
-    elements: list[dict[str, str]],
-    theme: Theme,
-    allow_online_links: bool = False,
-) -> str:
-    visible: list[str] = []
-    data_items: list[dict[str, str]] = []
-    talk_buffer: list[dict[str, str]] = []
-
-    # Keep each speaker in a stable slot/color for the whole Arc.  New speakers
-    # rotate left, right, center; legacy side hints are honored when possible.
-    speaker_assignments: dict[str, tuple[str, int]] = {}
+def _story_assign_speakers(elements: list[dict[str, str]]) -> dict[str, tuple[str, int]]:
+    assignments: dict[str, tuple[str, int]] = {}
     used_initial: set[str] = set()
     for item in elements:
         if item.get("kind") != "talk":
             continue
         key = str(item.get("speaker", "TALKER")).strip().casefold() or "talker"
-        if key in speaker_assignments:
+        if key in assignments:
             continue
-        index = len(speaker_assignments)
+        index = len(assignments)
         hint = str(item.get("side_hint", item.get("side", ""))).lower()
         if index < 2 and hint in {"left", "right"} and hint not in used_initial:
             slot = hint
@@ -633,75 +797,214 @@ def _render_story_flow(
             slot = ("left", "right", "center")[index % 3]
             if index < 3 and slot in used_initial:
                 slot = next((candidate for candidate in ("left", "right", "center") if candidate not in used_initial), slot)
-        speaker_assignments[key] = (slot, index)
+        assignments[key] = (slot, index)
         if index < 3:
             used_initial.add(slot)
+    return assignments
+
+
+def _render_story_flow(
+    elements: list[dict[str, str]],
+    theme: Theme,
+    allow_online_links: bool = False,
+) -> tuple[str, str, dict[str, int]]:
+    visible: list[str] = []
+    data_items: list[dict[str, str]] = []
+    talk_buffer: list[dict[str, str]] = []
+    speaker_assignments = _story_assign_speakers(elements)
+    counts = {
+        "speakers": len(speaker_assignments),
+        "dialogue": 0,
+        "thoughts": 0,
+        "directives": 0,
+        "plot": 0,
+        "choices": 0,
+        "markup": 0,
+        "data": 0,
+    }
 
     def flush_talks() -> None:
         nonlocal talk_buffer
         if talk_buffer:
-            visible.append(_render_story_conversation(talk_buffer, theme, speaker_assignments))
+            visible.append(_render_story_conversation(talk_buffer, theme, speaker_assignments, allow_online_links))
             talk_buffer = []
 
     for item in elements:
         kind = item.get("kind", "")
         if kind == "talk":
+            if item.get("talk_type") == "thought":
+                counts["thoughts"] += 1
+            else:
+                counts["dialogue"] += 1
             talk_buffer.append(item)
             continue
         flush_talks()
         if kind == "directive":
-            visible.append(_story_arc_divider(compact=True))
+            counts["directives"] += 1
+            visible.append(_story_arc_divider(compact=True, theme=theme))
             visible.append(_render_story_directive(item, theme))
-            visible.append(_story_arc_divider(compact=True))
+            visible.append(_story_arc_divider(compact=True, theme=theme))
         elif kind in {"notice", "plot"}:
-            visible.append(_story_arc_divider(compact=True))
+            counts["plot"] += 1
+            visible.append(_story_arc_divider(compact=True, theme=theme))
             visible.append(_render_story_notice(item, theme))
-            visible.append(_story_arc_divider(compact=True))
+            visible.append(_story_arc_divider(compact=True, theme=theme))
         elif kind == "markup":
+            counts["markup"] += 1
             visible.append(_render_story_markup(item.get("text", ""), theme, allow_online_links))
         elif kind == "option":
+            counts["choices"] += 1
             visible.append(_render_story_option(item, theme))
         elif kind == "data":
+            counts["data"] += 1
             data_items.append(item)
     flush_talks()
 
-    flow = "".join(visible)
-    return flow + _render_story_data_table(data_items, theme)
+    flow = "".join(visible) or '<div class="story-empty-section">No conversation, thought, directive, choice, or nested SWAR markup was detected in this Arc.</div>'
+    return flow, _render_story_data_table(data_items, theme), counts
 
-def _render_arc_record(block: Block, theme: Theme, allow_online_links: bool = False) -> str:
+
+def _story_count_summary(counts: dict[str, int], theme: Theme) -> str:
+    labels = (
+        ("SPEAKERS", "speakers"),
+        ("DIALOGUE", "dialogue"),
+        ("THOUGHTS", "thoughts"),
+        ("DIRECTIONS", "directives"),
+        ("PLOT", "plot"),
+        ("CHOICES", "choices"),
+        ("SCRIPT", "markup"),
+        ("DATA", "data"),
+    )
+    palette = _story_palette(theme)
+    cells: list[str] = []
+    for index, (label, key) in enumerate(labels):
+        color = palette[index % len(palette)]
+        cells.append(
+            f'<td class="story-count-cell" style="border-color:{color};">'
+            f'<div class="story-count-number" style="color:{color};">{int(counts.get(key, 0))}</div>'
+            f'<div class="story-count-label">{label}</div></td>'
+        )
+    return '<table class="story-count-table" width="100%" cellspacing="4" cellpadding="0"><tr>' + "".join(cells) + '</tr></table>'
+
+
+def _story_section_key(line: int, section: str) -> str:
+    return f"{max(1, int(line))}:{section}"
+
+
+def _render_story_section(
+    *,
+    line: int,
+    section: str,
+    title: str,
+    body: str,
+    theme: Theme,
+    collapsed_sections: set[str] | None,
+    subtitle: str = "",
+    color_index: int = 0,
+) -> str:
+    interactive = collapsed_sections is not None
+    key = _story_section_key(line, section)
+    collapsed = bool(interactive and key in collapsed_sections)
+    palette = _story_palette(theme)
+    color = palette[color_index % len(palette)]
+    marker = "+" if collapsed else "−"
+    subtitle_html = f'<span class="story-section-subtitle">{escape(subtitle)}</span>' if subtitle else ""
+    if interactive:
+        heading = (
+            f'<a href="storytoggle:{max(1, int(line))}:{quote(section, safe="")}" '
+            f'class="story-section-toggle" style="color:{color}; text-decoration:none;">'
+            f'<b>{marker}&nbsp;&nbsp;{escape(title)}</b>{subtitle_html}</a>'
+        )
+    else:
+        heading = f'<span class="story-section-toggle" style="color:{color};"><b>{escape(title)}</b>{subtitle_html}</span>'
+    header = (
+        f'<table class="story-section-header" data-story-section="{escape(section, quote=True)}" '
+        f'width="100%" cellspacing="0" cellpadding="0" style="border-color:{color};">'
+        f'<tr><td>{heading}</td><td class="story-section-state" style="color:{color};">'
+        f'{"COLLAPSED" if collapsed else "OPEN"}</td></tr></table>'
+    )
+    if collapsed:
+        return header + '<div class="story-section-collapsed">Click the section title to expand.</div>'
+    return header + f'<div class="story-section-body" style="border-color:{color};">{body}</div>'
+
+
+def _render_arc_record(
+    block: Block,
+    theme: Theme,
+    allow_online_links: bool = False,
+    *,
+    story_collapsed: set[str] | None = None,
+) -> str:
     attrs = block.attrs
-    name = _story_inline(str(attrs.get("name", block.text or "Untitled Arc")), theme)
+    name_raw = str(attrs.get("name", block.text or "Untitled Arc"))
+    name = _story_inline(name_raw, theme)
     estimated = _story_inline(str(attrs.get("estimated", "0:0:0")), theme)
     zone = _story_inline(str(attrs.get("zone_type", "Safe")), theme)
     map_ref = _story_inline(str(attrs.get("map_ref", "")), theme)
     start = _render_embedded_story_markup(str(attrs.get("start_message", "")), theme, allow_online_links)
     confirm = _render_embedded_story_markup(str(attrs.get("confirm_message", "")), theme, allow_online_links)
     elements = list(attrs.get("story_elements", []))
-    flow = _render_story_flow(elements, theme, allow_online_links)
+    flow, data_html, counts = _render_story_flow(elements, theme, allow_online_links)
     warnings = list(attrs.get("record_warnings", []))
     warning_html = ""
     if warnings:
         warning_html = '<div class="arc-warnings">' + '<br>'.join(escape(str(item)) for item in warnings) + '</div>'
-    if not flow:
-        raw_data = str(attrs.get("arc_data", ""))
-        flow = '<div class="arc-data"><b>ARC DATA</b><div>' + (_story_inline(raw_data, theme) if raw_data else '<span class="arc-empty">empty</span>') + '</div></div>'
+    raw_data = str(attrs.get("arc_data", ""))
+    if not elements and raw_data:
+        flow = (
+            '<div class="story-unparsed-warning"><b>UNPARSED ARC DATA</b><br>'
+            'The source is preserved below so conversation or markup syntax cannot disappear silently.</div>'
+            f'<div class="arc-data">{_story_inline(raw_data, theme)}</div>'
+        )
+
+    line = max(1, int(block.line_start))
+    interactive = story_collapsed is not None
+    controls = ""
+    if interactive:
+        controls = (
+            '<div class="story-arc-controls">'
+            f'<a href="storyexpand:{line}">EXPAND ALL</a>&nbsp;&nbsp;|&nbsp;&nbsp;'
+            f'<a href="storycollapse:{line}">COLLAPSE ALL</a>'
+            '</div>'
+        )
+    opening_section = _render_story_section(
+        line=line, section="opening", title="OPENING / SETUP", body=start,
+        theme=theme, collapsed_sections=story_collapsed,
+        subtitle="Nested .script markup supported", color_index=1,
+    )
+    flow_section = _render_story_section(
+        line=line, section="flow", title="PLAY / READ STORY FLOW", body=flow,
+        theme=theme, collapsed_sections=story_collapsed,
+        subtitle="Conversation • thoughts • directions • choices • nested markup", color_index=2,
+    )
+    data_section = _render_story_section(
+        line=line, section="data", title="AUTHOR / ENGINE DATA", body=data_html,
+        theme=theme, collapsed_sections=story_collapsed,
+        subtitle="Bindings • entities • rates • locations • relay phrases", color_index=3,
+    )
+    completion_section = _render_story_section(
+        line=line, section="completion", title="COMPLETION / OUTCOME", body=confirm,
+        theme=theme, collapsed_sections=story_collapsed,
+        subtitle="Nested .script markup supported", color_index=4,
+    )
+    arc_color = _story_palette(theme)[0]
     return (
-        _story_arc_divider()
-        + '<section class="arc-card story-screenplay-card">'
-          f'<div class="arc-title">{name}</div>'
+        _story_arc_divider(theme=theme)
+        + f'<section class="arc-card story-screenplay-card" data-swar-line="{line}" '
+          f'data-arc-name="{escape(name_raw, quote=True)}" style="border-color:{arc_color};">'
+          f'<div class="arc-title" style="border-color:{arc_color};">{name}</div>'
+          f'{controls}'
           '<table class="story-base-table" width="100%" cellspacing="0" cellpadding="0">'
           f'<tr><th>ESTIMATE</th><td>{estimated}</td><th>ZONE</th><td>{zone}</td></tr>'
           f'<tr><th>MAP</th><td colspan="3">{map_ref}</td></tr>'
-          f'<tr><th>SOURCE</th><td colspan="3">ARCS LINE {block.line_start}</td></tr>'
+          f'<tr><th>SOURCE</th><td colspan="3">ARCS LINE {line}</td></tr>'
           '</table>'
-          f'<div class="arc-stage arc-start"><div class="story-stage-label">OPENING</div>{start}</div>'
-          f'{flow}'
-          f'<div class="arc-stage arc-complete"><div class="story-stage-label">COMPLETION</div>{confirm}</div>'
+          f'{_story_count_summary(counts, theme)}'
+          f'{opening_section}{flow_section}{data_section}{completion_section}'
           f'{warning_html}'
           '</section>'
-        + _story_arc_divider()
+        + _story_arc_divider(theme=theme)
     )
-
 
 def _render_fenced_box(block: Block, theme: Theme, fancy_variant: int = 0) -> str:
     info = str(block.attrs.get("fence_info") or "CODE").strip()[:40]
@@ -1190,59 +1493,79 @@ a:hover {{ text-decoration: underline; }}
 .golden-bright {{ color:{BRIGHT_GOLD}; border:2px solid {BRIGHT_GOLD}; text-align:center; font-size:20px; }}
 .attention-red {{ color:{ATTN_RED}; border-left:8px solid {ATTN_RED}; border-right:8px solid {ATTN_RED}; background:{theme.panel}; padding:10px 14px; margin:12px 0; font-weight:1000; text-align:center; }}
 .attention-arrows {{ letter-spacing:2px; }}
-.story-arc-divider {{ display:flex; align-items:center; text-align:center; margin:28px 0 18px; color:{STORY_ARC_COLOR}; }}
-.story-arc-divider::before, .story-arc-divider::after {{ content:""; flex:1; border-bottom:4px double {STORY_ARC_COLOR}; }}
-.story-arc-divider span {{ padding:0 14px; color:{STORY_ARC_COLOR}; font-weight:1000; letter-spacing:2px; }}
+.story-arc-divider {{ margin:28px 0 18px; border-collapse:separate; border-spacing:0; }}
+.story-arc-divider .story-divider-line {{ border-bottom:4px double currentColor; width:43%; }}
+.story-arc-divider th {{ padding:0 14px 5px; font-weight:1000; letter-spacing:2px; white-space:nowrap; }}
 .story-arc-divider.compact {{ margin:30px 6% 26px; opacity:0.92; }}
-.story-arc-divider.compact::before, .story-arc-divider.compact::after {{ border-bottom-width:2px; border-bottom-style:solid; }}
-.story-arc-divider.compact span {{ font-size:12px; letter-spacing:1.4px; }}
-.arc-card {{ border:4px solid {STORY_ARC_COLOR}; border-radius:14px; background:{theme.panel}; margin:18px 0 26px; padding:12px; }}
+.story-arc-divider.compact .story-divider-line {{ border-bottom-width:2px; border-bottom-style:solid; }}
+.story-arc-divider.compact th {{ font-size:12px; letter-spacing:1.4px; }}
+.arc-card {{ border:4px solid; border-radius:14px; background:{theme.panel}; margin:18px 0 26px; padding:12px; }}
 .story-screenplay-card {{ box-shadow:0 0 0 2px {theme.border} inset; }}
-.arc-title {{ color:{theme.title}; text-align:center; font-size:28px; font-weight:1000; border-bottom:2px solid {STORY_ARC_COLOR}; padding:6px; }}
+.arc-title {{ color:{theme.title}; text-align:center; font-size:28px; font-weight:1000; border-bottom:2px solid; padding:6px; }}
+.story-arc-controls {{ text-align:center; font-size:12px; letter-spacing:0.9px; padding:8px 0 3px; }}
+.story-arc-controls a {{ color:{theme.highlight}; }}
 .story-base-table, .story-data-table {{ width:100%; border-collapse:collapse; margin:10px 0 16px; background:{theme.bg}; font-family:"DejaVu Sans Mono", monospace; }}
 .story-base-table th, .story-base-table td, .story-data-table th, .story-data-table td {{ border:1px solid {theme.border}; padding:7px 9px; vertical-align:top; }}
-.story-base-table th, .story-data-table th {{ color:{STORY_ARC_COLOR}; background:{theme.panel}; text-align:left; font-size:13px; letter-spacing:0.7px; }}
+.story-base-table th, .story-data-table th {{ color:{theme.highlight3}; background:{theme.panel}; text-align:left; font-size:13px; letter-spacing:0.7px; }}
 .story-base-table td {{ color:{theme.text}; }}
 .story-data-label {{ color:{theme.highlight}; font-weight:800; white-space:nowrap; }}
+.story-count-table {{ width:100%; table-layout:fixed; margin:8px 0 16px; }}
+.story-count-cell {{ border:1px solid; background:{theme.bg}; text-align:center; padding:7px 2px; vertical-align:middle; }}
+.story-count-number {{ font-size:20px; font-weight:1000; }}
+.story-count-label {{ color:{theme.muted}; font-size:9px; font-weight:900; letter-spacing:0.4px; }}
+.story-section-header {{ width:100%; border:2px solid; border-collapse:collapse; background:{theme.bg}; margin-top:13px; }}
+.story-section-header td {{ padding:9px 11px; vertical-align:middle; }}
+.story-section-toggle {{ display:block; font-size:14px; font-weight:1000; letter-spacing:1px; }}
+.story-section-subtitle {{ color:{theme.muted}; font-size:10px; font-weight:700; letter-spacing:0.2px; padding-left:12px; }}
+.story-section-state {{ width:74px; text-align:right; font-size:10px; font-weight:900; letter-spacing:0.8px; white-space:nowrap; }}
+.story-section-body {{ border-left:2px solid; border-right:2px solid; border-bottom:2px solid; background:{theme.panel}; padding:12px; margin-bottom:12px; }}
+.story-section-collapsed {{ color:{theme.muted}; border-left:2px dotted {theme.border}; padding:6px 12px 10px; margin-bottom:10px; font-size:12px; font-style:italic; }}
 .arc-stage, .arc-data, .arc-map {{ border-left:5px solid {theme.highlight4}; background:{theme.bg}; margin:12px 0; padding:10px 12px; }}
 .arc-complete {{ border-left-color:{GREEN_ARROW}; }}
 .arc-start {{ border-left-color:{BRIGHT_GOLD}; }}
-.story-stage-label, .story-subtitle {{ color:{STORY_ARC_COLOR}; font-weight:1000; text-align:center; letter-spacing:1.2px; padding:3px 0 8px; }}
+.story-stage-label, .story-subtitle {{ color:{theme.highlight3}; font-weight:1000; text-align:center; letter-spacing:1.2px; padding:3px 0 8px; }}
 .arc-stage .header-card {{ margin:4px 0 12px; }}
 .arc-stage .arrow-title, .arc-stage .arrow-descriptor, .arc-stage .arrow-major {{ margin-left:0 !important; }}
-.story-conversation {{ border:3px solid {STORY_ARC_COLOR}; border-radius:12px; background:{theme.bg}; padding:0 10px 10px; margin:20px 0; overflow:hidden; }}
-.story-convo-rail {{ display:flex; justify-content:center; align-items:center; gap:24px; color:{STORY_ARC_COLOR}; border-bottom:3px double {STORY_ARC_COLOR}; padding:8px 6px; margin:0 -10px 12px; letter-spacing:4px; font-size:17px; }}
-.story-convo-rail span {{ font-size:24px; font-weight:1000; }}
-.story-convo-end {{ color:{STORY_ARC_COLOR}; border-top:3px double {STORY_ARC_COLOR}; text-align:center; font-weight:1000; letter-spacing:3px; padding:9px 6px 1px; margin:12px -10px 0; }}
+.story-conversation {{ border:3px solid; border-radius:12px; background:{theme.bg}; padding:0 10px 10px; margin:20px 0; overflow:hidden; }}
+.story-convo-rail-table {{ width:100%; border-collapse:collapse; border-bottom:3px double {theme.border}; margin-bottom:12px; }}
+.story-convo-rail-table th {{ text-align:center; padding:8px; letter-spacing:4px; font-size:17px; }}
+.story-convo-rail-table td {{ width:54px; text-align:center; font-size:24px; font-weight:1000; padding:8px; }}
+.story-convo-end {{ border-top:3px double; text-align:center; font-weight:1000; letter-spacing:3px; padding:9px 6px 1px; margin:12px -10px 0; }}
 .story-talk-row {{ width:100%; border-collapse:separate; border-spacing:0; margin:11px 0; table-layout:fixed; }}
 .story-talk-main {{ background:{theme.panel}; border:2px solid {theme.border}; padding:11px 14px; vertical-align:middle; }}
 .story-talk-row.left .story-talk-main {{ border-left-width:7px; border-radius:10px 0 0 10px; text-align:left; }}
 .story-talk-row.right .story-talk-main {{ border-right-width:7px; border-radius:0 10px 10px 0; text-align:right; }}
 .story-talk-row.center .story-talk-main {{ border-left-width:5px; border-right-width:5px; border-radius:10px; text-align:center; }}
-.story-talk-row.thought .story-talk-main {{ border-style:dashed; font-style:italic; }}
+.story-talk-row.thought .story-talk-main {{ border-style:dashed; font-style:italic; background:{theme.bg}; }}
 .story-talk-buffer {{ width:46px; font-size:31px; font-weight:1000; text-align:center; vertical-align:middle; }}
+.story-talk-kind {{ font-size:10px; font-weight:1000; letter-spacing:1.3px; margin-bottom:6px; }}
 .story-speaker-inline {{ font-size:15px; font-weight:1000; letter-spacing:0.8px; }}
 .story-speech {{ color:{theme.text}; font-size:21px; line-height:1.55; }}
+.story-speech .important-table, .story-speech .fancy-box {{ margin-left:0 !important; }}
+.story-speech .header-card {{ margin:5px 0; padding:8px; }}
+.story-embedded-plain {{ padding:3px 4px; margin:3px 0 8px; }}
 .story-center-speaker {{ font-size:14px; font-weight:1000; letter-spacing:1.5px; margin-top:7px; text-align:center; }}
 .story-talk-target {{ color:{theme.muted}; font-size:12px; margin-top:7px; font-family:"DejaVu Sans Mono", monospace; }}
-.story-script-markup {{ border:2px dotted {STORY_ARC_COLOR}; background:{theme.bg}; border-radius:10px; padding:10px 12px; margin:20px 0; }}
+.story-script-markup {{ border:2px dotted {theme.highlight3}; background:{theme.bg}; border-radius:10px; padding:10px 12px; margin:20px 0; }}
 .story-script-markup .important-table, .story-script-markup .fancy-box {{ margin-left:0 !important; }}
-.story-notice {{ text-align:center; color:{theme.text}; border:2px solid {STORY_DIRECTIVE_COLOR}; background:{theme.panel}; border-radius:10px; padding:12px 16px; margin:46px 8%; line-height:1.65; }}
-.story-notice-label {{ color:{STORY_DIRECTIVE_COLOR}; font-size:12px; font-weight:1000; letter-spacing:1.2px; margin-bottom:8px; }}
+.story-notice {{ text-align:center; color:{theme.text}; border:2px solid; background:{theme.panel}; border-radius:10px; padding:12px 16px; margin:46px 8%; line-height:1.65; }}
+.story-notice-label {{ font-size:12px; font-weight:1000; letter-spacing:1.2px; margin-bottom:8px; }}
 .story-notice-target {{ color:{theme.muted}; font-size:12px; margin-top:8px; }}
 .story-directive {{ margin:48px 0; padding:4px 0; }}
 .story-directive-grid {{ border-collapse:separate; border-spacing:0; table-layout:fixed; position:relative; }}
-.story-directive-box {{ border:2px solid {STORY_DIRECTIVE_COLOR}; background:{theme.panel}; padding:13px; min-height:64px; text-align:center; vertical-align:middle; }}
+.story-directive-box {{ border:2px solid; background:{theme.panel}; padding:13px; min-height:64px; text-align:center; vertical-align:middle; }}
 .story-left-box {{ border-radius:11px 0 0 11px; }}
 .story-right-box {{ border-radius:0 11px 11px 0; }}
 .story-directive-label {{ color:{theme.muted}; font-size:11px; font-weight:900; letter-spacing:1px; margin-bottom:7px; }}
-.story-directive-arrow {{ position:relative; z-index:3; width:58px; min-width:58px; height:58px; line-height:58px; text-align:center; vertical-align:middle; border-radius:50%; border:3px solid {STORY_DIRECTIVE_COLOR}; background:{theme.bg}; color:{STORY_DIRECTIVE_COLOR}; font-size:34px; font-weight:1000; }}
-.story-option {{ display:flex; align-items:center; gap:10px; border:2px solid {theme.highlight4}; background:{theme.panel}; padding:9px 12px; margin:10px 5%; border-radius:9px; }}
-.story-option b {{ color:{theme.highlight4}; min-width:78px; }}
-.story-option-marker {{ color:{theme.highlight4}; font-size:22px; }}
+.story-directive-arrow {{ position:relative; z-index:3; width:58px; min-width:58px; height:58px; line-height:58px; text-align:center; vertical-align:middle; border-radius:50%; border:3px solid; background:{theme.bg}; font-size:34px; font-weight:1000; }}
+.story-option {{ border:2px solid {theme.highlight4}; background:{theme.panel}; padding:9px 12px; margin:10px 5%; border-radius:9px; }}
+.story-option b {{ color:{theme.highlight4}; padding:0 12px; }}
+.story-option-marker {{ color:{theme.highlight4}; font-size:22px; padding-right:8px; }}
 .story-option.mandatory {{ border-color:{ATTN_RED}; }}
 .story-option.mandatory b, .story-option.mandatory .story-option-marker {{ color:{ATTN_RED}; }}
-.story-data-group {{ margin:16px 0; }}
+.story-data-group {{ margin:4px 0; }}
+.story-empty-section {{ color:{theme.muted}; text-align:center; font-style:italic; padding:16px; border:1px dotted {theme.border}; }}
+.story-unparsed-warning {{ color:{ATTN_RED}; border:2px dashed {ATTN_RED}; background:{theme.bg}; padding:10px; margin:8px 0; text-align:center; }}
 .arc-empty {{ color:{theme.muted}; font-style:italic; }}
 .arc-warnings {{ color:{ATTN_RED}; border:1px dashed {ATTN_RED}; padding:7px; margin-top:8px; }}
 sup {{ font-size:72%; vertical-align:super; line-height:0; color:{theme.highlight3}; }}
