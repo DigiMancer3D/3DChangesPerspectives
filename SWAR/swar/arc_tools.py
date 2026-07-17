@@ -266,7 +266,12 @@ def parse_story_arc_data(value: str) -> list[dict[str, str]]:
     The source remains canonical.  Named speakers, normal .script markup,
     directives, choices, and engine data are all display-only interpretations.
     """
-    text = (value or "").replace("\\n", "\n")
+    # Keep literal ``\\n`` tokens intact while scanning wrappers.  They are
+    # decoded only after a speech/thought wrapper is captured.  The previous
+    # eager conversion turned a one-line quoted conversation into physical
+    # newlines before STORY_WRAPPER_RE ran, so rich multi-line dialogue could
+    # silently fall back to plot text instead of becoming a talk element.
+    text = value or ""
     out: list[dict[str, str]] = []
     cursor = 0
     for match in STORY_WRAPPER_RE.finditer(text):
@@ -330,6 +335,8 @@ ARC_SNIPPET_GROUPS: dict[str, list[Snippet]] = {
         Snippet("Named Talker", 'ALICE: "Speech text"', 12, "Named speaker; new speakers rotate left, right, then center."),
         Snippet("Named Talker Right", '"Speech text" :BOB', 17, "Named right-hinted speaker form."),
         Snippet("Thought", "/User's Thoughts/", 1, "Left-side active-character thought box."),
+        Snippet("Named Thought", "/ALICE: Thought text/", 1, "Named thought box; speaker position and color stay stable."),
+        Snippet("Rich Named Talker", 'ALICE: ">>>> CUE <<<<\\nSpoken **detail**\\n>>!!\\nImportant beat\\n!! !! !!<<"', 12, "Named dialogue containing literal \\n-separated SWAR markup."),
         Snippet("User Speech", "\\User's Speech\\", 1, "Left-side active-character talk box."),
         Snippet("Noticed", "_Noticed actions_", 1, "Centered screenplay notice / plot action."),
         Snippet("NPC Speech", "-NPC Speech-", 1, "Right-side NPC talk box."),
