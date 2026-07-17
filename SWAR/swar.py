@@ -12,7 +12,7 @@ from swar.gui_shell import run_shell
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="SWAR v0.7.1-rc1-r3 - Script Writer and Reader")
+    parser = argparse.ArgumentParser(description="SWAR v0.7.1-rc1-r4 - Script Writer and Reader")
     parser.add_argument("file", nargs="?", help=".script, .md, .txt, or .arcs file to open")
     parser.add_argument("--reader", action="store_true", help="Launch SWAR shell in reader-only/local-only mode")
     parser.add_argument("--standard", action="store_true", help="Launch SWAR shell in standard reader/editor mode")
