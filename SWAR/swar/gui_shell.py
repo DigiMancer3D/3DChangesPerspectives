@@ -455,9 +455,12 @@ class SwarTab(QWidget):
         self.shell = shell
         self.state = state
         self.parser = SwarParser()
+        # GUI-only Story section state. Empty means every Story layer is open,
+        # so conversations and nested markup are never hidden on first render.
+        self.story_collapsed_sections: set[str] = set()
         self._syncing_scroll = False
         self._right_scroll_held = False
-        self._last_render_key: tuple[str, str, bool, str, str] | None = None
+        self._last_render_key: tuple[str, str, bool, str, str, str] | None = None
         self._teleprompter_fraction = 0.0
         # Some Qt/PySide6 builds emit textChanged while a syntax highlighter is
         # attached or rehighlighted, even before file text has been loaded.
@@ -722,12 +725,14 @@ class SwarTab(QWidget):
         parse_path = self.state.path or ""
         if self.state.mode == "story" and Path(parse_path).suffix.lower() != ".arcs":
             parse_path = str(Path(parse_path).with_suffix(".arcs")) if parse_path else "untitled.arcs"
+        story_state_key = "|".join(sorted(self.story_collapsed_sections))
         render_key = (
             text,
             self.shell.theme_name,
             self.state.network_mode == "online",
             parse_path,
             self.state.mode,
+            story_state_key,
         )
         if not force and render_key == self._last_render_key and self.state.doc is not None:
             self.shell.update_footer()
@@ -738,6 +743,7 @@ class SwarTab(QWidget):
             self.state.doc,
             self.shell.theme_name,
             allow_online_links=self.state.network_mode == "online",
+            story_collapsed=self.story_collapsed_sections,
         )
         self.reader.setHtml(html)
         self._last_render_key = render_key
@@ -766,6 +772,40 @@ class SwarTab(QWidget):
             self.bottom_scroll.show()
             self.parse_and_render(force=True, restore_state=view)
         QTimer.singleShot(0, self.sync_scroll_range)
+
+    _STORY_SECTION_NAMES = ("opening", "flow", "data", "completion")
+
+    def _rerender_story_sections(self, message: str) -> None:
+        view = self.capture_view_position()
+        self._last_render_key = None
+        self.parse_and_render(force=True, restore_state=view)
+        self.shell.statusBar().showMessage(message, 1600)
+
+    def toggle_story_section(self, line: int, section: str) -> None:
+        section = str(section or "").strip().lower()
+        if section not in self._STORY_SECTION_NAMES:
+            return
+        key = f"{max(1, int(line))}:{section}"
+        if key in self.story_collapsed_sections:
+            self.story_collapsed_sections.remove(key)
+            state = "expanded"
+        else:
+            self.story_collapsed_sections.add(key)
+            state = "collapsed"
+        self._rerender_story_sections(f"Story section {section} {state}.")
+
+    def expand_story_arc(self, line: int) -> None:
+        prefix = f"{max(1, int(line))}:"
+        self.story_collapsed_sections = {
+            key for key in self.story_collapsed_sections if not key.startswith(prefix)
+        }
+        self._rerender_story_sections("Expanded all Story sections for this Arc.")
+
+    def collapse_story_arc(self, line: int) -> None:
+        line = max(1, int(line))
+        for section in self._STORY_SECTION_NAMES:
+            self.story_collapsed_sections.add(f"{line}:{section}")
+        self._rerender_story_sections("Collapsed all Story sections for this Arc.")
 
     def set_theme(self) -> None:
         theme = get_theme(self.shell.theme_name)
@@ -1036,7 +1076,7 @@ class SwarShellWindow(QMainWindow):
         self._teleprompter_timer.timeout.connect(self._teleprompter_tick)
         self._teleprompter_timer.start()
 
-        self.setWindowTitle("SWAR v0.7.1-rc1-r3 - Script Writer and Reader")
+        self.setWindowTitle("SWAR v0.7.1-rc1-r4 - Script Writer and Reader")
         self.resize(1040, 720)
         self.setMinimumSize(240, 260)
         self._build_ui()
@@ -2079,6 +2119,31 @@ class SwarShellWindow(QMainWindow):
                 QToolTip.showText(QGuiApplication.cursor().pos(), "Copied to clipboard.", self, msecShowTime=900)
             except Exception:
                 pass
+            return
+
+        tab = self.active_tab()
+        if not tab:
+            return
+        if value.startswith("storytoggle:"):
+            payload = value[len("storytoggle:"):]
+            try:
+                line_text, section = payload.split(":", 1)
+                tab.toggle_story_section(int(line_text), unquote(section))
+            except (TypeError, ValueError):
+                self.statusBar().showMessage("Could not identify that Story section.", 1600)
+            return
+        if value.startswith("storyexpand:"):
+            try:
+                tab.expand_story_arc(int(value[len("storyexpand:"):]))
+            except (TypeError, ValueError):
+                self.statusBar().showMessage("Could not identify that Story Arc.", 1600)
+            return
+        if value.startswith("storycollapse:"):
+            try:
+                tab.collapse_story_arc(int(value[len("storycollapse:"):]))
+            except (TypeError, ValueError):
+                self.statusBar().showMessage("Could not identify that Story Arc.", 1600)
+            return
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt method name
         self.udata.set("last_window_width", str(max(0, self.width())), section="POST-BODY")
