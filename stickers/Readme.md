@@ -2,11 +2,12 @@
 
 Welcome to the sticker shelf for **3D Changes Perspectives** (**3DCP**). These images are made for viewers who want to react, remix, share, and carry a little of the show into their own conversations. Use **#3DCP** when sharing them or talking about the show.
 
-> **Quick start:** Download a `.png` or `.jpg` when you want a ready-to-use sticker. The matching `.bnpm` files are optional reconstruction recipes for people who want to reproduce the image from a local Bitcoin (BTC) blockchain corpus using [Block-n-Pick](https://github.com/DigiMancer3D/Block-n-Pick).
+> **Quick start:** Open the gallery in `gallery.html` for a quick browser preview with Download buttons, or download the raw image file directly from this folder. The matching `.bnpm` files are optional reconstruction recipes for people who want to reproduce the image from a local Bitcoin (BTC) blockchain corpus using [Block-n-Pick](https://github.com/DigiMancer3D/Block-n-Pick).
 
 ## What's here
 
 - **Ready-to-use images:** PNG and JPG files for sharing and sticker-making.
+- **Gallery view:** `gallery.html` gives a fast visual preview and direct download controls.
 - **BNPM companions:** Files such as `3D Close Up_bnp.bnpm` and `Catch_up_deets_bnp2.bnpm` that can be resolved and built with Block-n-Pick.
 - **Show identity:** 3DCP logos, character art, reactions, catch-up cards, and meme-style visual references.
 
@@ -17,6 +18,14 @@ The collection will grow as new episodes and visual bits are released. File name
 These stickers are AI-made with my model and draw on online meme imagery and nerd references. They are fan-facing show artwork and visual jokes—not a claim that every underlying reference is original to this project. Please respect the rights, trademarks, likenesses, and platform rules that may apply to third-party material, and do not imply endorsement by any referenced creator or brand.
 
 For the safest sharing workflow, link back to this repository, credit **3D Changes Perspectives**, and use **#3DCP**. If you remix something, make it clear that your version is a remix.
+
+## Browser gallery
+
+Open the gallery page in GitHub or use the raw HTML file in a browser to browse the sticker pack and click the Download buttons:
+
+- `gallery.html`
+
+This is the easiest way to view multiple stickers in one place without downloading each file individually before previewing.
 
 ## Reconstructing a `.bnpm` image with Block-n-Pick
 
