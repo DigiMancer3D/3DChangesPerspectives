@@ -2,12 +2,14 @@
 
 Welcome to the sticker shelf for **3D Changes Perspectives** (**3DCP**). These images are made for viewers who want to react, remix, share, and carry a little of the show into their own conversations. Use **#3DCP** when sharing them or talking about the show.
 
-> **Quick start:** Open the [web sticker gallery](https://gistpreview.github.io/?ffcd773b7d7414d987077edc4f5916c5/3DCP_StickerGallery.html) for a browser-based preview, with direct download options where provided. You can also open the local [`gallery.html`](./gallery.html) page or download an image directly from this folder. The matching `.bnpm` files are optional reconstruction recipes for people who want to reproduce the image from a local Bitcoin (BTC) blockchain corpus using [Block-n-Pick](https://github.com/DigiMancer3D/Block-n-Pick).
+> **Quick start:** Browse the full sticker folder on GitHub: [3DCP Sticker Folder](https://github.com/DigiMancer3D/3DChangesPerspectives/tree/main/stickers)  
+> Open the [web sticker gallery](https://gistpreview.github.io/?ffcd773b7d7414d987077edc4f5916c5/3DCP_StickerGallery.html) for a browser-based preview, with direct download options where provided. You can also open the local [`gallery.html`](./gallery.html) page or download an image directly from this folder. The matching `.bnpm` files are optional reconstruction recipes for people who want to reproduce the image from a local Bitcoin (BTC) blockchain corpus using [Block-n-Pick](https://github.com/DigiMancer3D/Block-n-Pick).
 
 ## What's here
 
 - **Ready-to-use images:** PNG and JPG files for sharing and sticker-making.
 - **Web gallery:** [Open the 3DCP Sticker Gallery](https://gistpreview.github.io/?ffcd773b7d7414d987077edc4f5916c5/3DCP_StickerGallery.html) to browse the collection online.
+- **GitHub folder:** [Browse all sticker files](https://github.com/DigiMancer3D/3DChangesPerspectives/tree/main/stickers)
 - **Local gallery view:** `gallery.html` gives a fast visual preview and direct download controls when opened in a browser.
 - **BNPM companions:** Files such as `3D Close Up_bnp.bnpm` and `Catch_up_deets_bnp2.bnpm` that can be resolved and built with Block-n-Pick.
 - **Show identity:** 3DCP logos, character art, reactions, catch-up cards, and meme-style visual references.
@@ -23,6 +25,7 @@ For the safest sharing workflow, link back to this repository, credit **3D Chang
 ## Browser gallery
 
 - [Open the web version of the 3DCP Sticker Gallery](https://gistpreview.github.io/?ffcd773b7d7414d987077edc4f5916c5/3DCP_StickerGallery.html)
+- [Browse the sticker files in GitHub](https://github.com/DigiMancer3D/3DChangesPerspectives/tree/main/stickers)
 - [Open the local gallery page](./gallery.html)
 
 The web gallery is the easiest option for viewers who want to preview the sticker pack online without downloading the repository first.
