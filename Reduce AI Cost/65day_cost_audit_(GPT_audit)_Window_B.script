@@ -1,0 +1,1060 @@
+# 65-DAY AI-ASSISTED DEVELOPMENT COST AUDIT — WINDOW B
+## GPT audit companion to the original 30-day / ~$53k Window A assessment
+
+**Audit window:** approximately 18 July 2026 through 21 September 2026  
+**Calendar length:** approximately 65 days  
+**Creator active time:** approximately 140 hours  
+**Direct AI subscription spend used for the episode comparison:** approximately $60  
+**Primary audit lens:** professional replacement labor at the same wage-equivalent style used for Window A  
+**Audit subject:** work actually performed during Window B only
+
+---
+
+# EXECUTIVE SUMMARY
+
+This audit estimates the professional labor that would be required to reproduce the work actually performed during the second development window.
+
+It is intentionally **not**:
+
+- a company valuation;
+- a resale valuation;
+- an intellectual-property valuation;
+- a claim that every project is complete;
+- a claim that publication dates equal project start dates;
+- a claim that AI worked without human direction;
+- a claim that all output is public;
+- or a reason to bill work from Window A a second time.
+
+The main result is:
+
+```text
+WINDOW B
+approximately 2,280–3,740 professional replacement hours
+
+same wage-equivalent lens as Window A:
+approximately $130,000–$214,000
+
+midpoint:
+approximately $172,000
+```
+
+For comparison, the previously audited Window A was:
+
+```text
+WINDOW A
+approximately 948 professional replacement hours
+approximately $52,970 wage-equivalent
+approximately $20 AI subscription cost
+approximately 140 creator-active hours
+```
+
+Window A is treated as a **closed baseline**.
+
+The Window B total therefore counts only new work, later integration work, later upgrades, later QA/release work, and incomplete research that was actually implemented or tested during Window B.
+
+---
+
+# THE QUESTION THIS AUDIT ANSWERS
+
+The useful question is not:
+
+> "What are these repositories worth?"
+
+The useful question is:
+
+> "If competent professionals had to reproduce the implementation, testing, debugging, release preparation, documentation, integration, and support work that was actually completed during this 65-day period, how much professional labor would that represent?"
+
+That is the same general question used in the first assessment.
+
+The answer is expressed first in **replacement hours**, then translated into a **wage-equivalent** using approximately the same role rates as the earlier audit.
+
+---
+
+# CLOSED BASELINE — WINDOW A
+
+The original 30-day assessment already counted the following work families and therefore they are **not rebuilt from zero inside Window B**:
+
+- CryptoChess / Crypto.Chess
+- PQC Scout-Knife
+- SPX-QEC and associated PQC work already inside the first audit
+- PQCAssets / PQC Containers already included in the first period
+- Bitninja Mocap Lite as a standalone product
+- Deck Card Widget / original 3DCP controller work
+- SWAR original reader/editor
+- Streamer Board & Console original application
+- G502V repair work
+- Soundcard launcher/fix
+- the cross-application documentation/grouping work included in the first audit
+- the first audit itself
+
+Window A published total:
+
+```text
+replacement labor: ~948 hours
+wage-equivalent:   ~$52,970
+AI seat cost:      ~$20
+creator time:      ~140 hours
+```
+
+The rule for Window B is therefore:
+
+```text
+OLD PRODUCT FROM WINDOW A
+        +
+NEW BUGFIX / NEW INTEGRATION / NEW RELEASE WORK IN WINDOW B
+        =
+COUNT ONLY THE NEW LAYER
+```
+
+The original product is not charged twice.
+
+---
+
+# WINDOW B INPUTS
+
+Approximate episode accounting:
+
+```text
+calendar:
+~65 days
+
+creator-active time:
+~140 hours
+
+AI subscription cost:
+~$60 total across the approximately two-month period
+
+working pattern:
+casual / intermittent rather than the concentrated Window A schedule
+```
+
+The creator-active-hours figure is not used as the labor estimate.
+
+It records time spent in the human loop: planning, prompting, reviewing, testing, running terminal commands, rejecting incorrect output, reporting bugs, making design decisions, packaging releases, and deciding what to build next.
+
+The **replacement-hour estimate** asks a separate question:
+
+> How much competent professional effort would be needed to reproduce the performed work?
+
+---
+
+# PRIMARY WAGE-EQUIVALENT METHOD
+
+To keep Window B comparable to the original assessment, this audit uses approximately the same role values:
+
+```text
+coding / engineering:
+~$64 per professional hour
+
+QA / verification:
+~$49 per professional hour
+
+documentation / process / coaching:
+~$44 per professional hour
+```
+
+No workstream is treated as 100% coding.
+
+Each project contains some combination of:
+
+- implementation;
+- architecture;
+- debugging;
+- test construction;
+- regression testing;
+- manual verification;
+- release preparation;
+- installer/update work;
+- documentation;
+- user support;
+- environment setup;
+- integration;
+- and project-management/process work.
+
+The listed dollar values therefore use a rough blended role cost appropriate to each workstream.
+
+These are deliberately estimates, not time-clock records from hired employees.
+
+---
+
+# WINDOW B INVENTORY
+
+| Workstream | Public status for episode | Replacement hours | Approx. wage-equivalent |
+|---|---|---:|---:|
+| SignalCloud Engine + authoring/stress/font/public-core/release work | Public | 850–1,350 | $49.5k–$78.6k |
+| DigiMancer Icon Forge | Private / unpublished | 240–400 | $13.7k–$22.9k |
+| SignalCloud Avatar / VRM pipeline after the Window A Bitninja line | Private / unpublished | 200–340 | $11.5k–$19.6k |
+| Hood Rat Brawler | Private / unpublished | 170–280 | $9.9k–$16.3k |
+| soloPAW Window B suite work | Public | 150–250 | $8.4k–$14.1k |
+| Block-n-Pick | Public / development record | 170–280 | $9.8k–$16.1k |
+| Quantum Warehouse — completed phases only | Private / incomplete | 120–200 | $6.8k–$11.4k |
+| TBPR / MRPS — completed research only | Private / incomplete | 130–220 | $7.4k–$12.5k |
+| TimeLedger | Private | 100–170 | $5.5k–$9.4k |
+| CachyOS + GitHub / terminal / release coaching | Mixed process work | 90–150 | $4.5k–$7.4k |
+| Mini-EP1 + later fixes to Window A applications | Public / mixed | 60–100 | $3.3k–$5.6k |
+| **TOTAL** |  | **2,280–3,740** | **~$130.4k–$213.8k** |
+
+Rounded on-air result:
+
+```text
+$130k–$214k wage-equivalent
+midpoint ≈ $172k
+```
+
+---
+
+# 1. SIGNALCLOUD ENGINE FAMILY
+
+Estimated professional replacement labor:
+
+```text
+850–1,350 hours
+~$49.5k–$78.6k wage-equivalent
+```
+
+This is the largest Window B work family, but it is not the entire Window B audit.
+
+Counted work includes the Window B implementation and refinement represented by such areas as:
+
+- engine/runtime work;
+- authoring and studio tooling;
+- native stress and recovery systems;
+- machine-profile and runtime validation;
+- SCFONT-related tooling;
+- Asset Doctor and asset-validation work;
+- environment and material/light tooling;
+- public-core / portable-core preparation;
+- privacy and release-surface cleanup;
+- release manifests and verification;
+- Linux packaging and launch paths;
+- integration and repeated acceptance testing.
+
+Important boundary:
+
+```text
+Bitninja Mocap Lite itself was already paid for in Window A.
+
+Window B counts only NEW SignalCloud-side integration,
+avatar/native pipeline work, and later systems.
+```
+
+SignalCloud receives the largest hour range because the development record contains a broad runtime/tooling/release surface with repeated test and acceptance cycles.
+
+The estimate does **not** assume that the entire engine was invented from zero during these 65 days.
+
+It estimates the Window B work that was actually performed.
+
+---
+
+# 2. DIGIMANCER ICON FORGE
+
+Estimated professional replacement labor:
+
+```text
+240–400 hours
+~$13.7k–$22.9k wage-equivalent
+```
+
+Generic performed-work description suitable for public discussion:
+
+- multi-object icon/image/vector editor work;
+- raster/vector workflows;
+- editable typography;
+- text-on-path;
+- smart-paint / smart-object behavior;
+- Linux icon-theme production;
+- cursor timeline and cursor-theme publication;
+- persistence and History behavior;
+- project-format evolution;
+- validation;
+- packaging;
+- repeated regression testing.
+
+This project is not required to be public for the performed work to exist.
+
+The audit counts implemented and tested work, not a hypothetical future completed editor.
+
+---
+
+# 3. SIGNALCLOUD AVATAR / VRM PIPELINE
+
+Estimated professional replacement labor:
+
+```text
+200–340 hours
+~$11.5k–$19.6k wage-equivalent
+```
+
+This line is deliberately separated from the already-counted Window A Bitninja product.
+
+Counted Window B work includes new avatar-side systems such as:
+
+- native avatar topology behavior;
+- depth and shell behavior;
+- hand treatment;
+- eye-state handling;
+- hair geometry and depth ownership;
+- overlap / occlusion handling;
+- capture behavior;
+- diagnostics;
+- native renderer integration;
+- repeated regression and acceptance tests.
+
+This is therefore an **integration-and-new-pipeline line**, not a second charge for Bitninja Mocap Lite.
+
+---
+
+# 4. HOOD RAT BRAWLER
+
+Estimated professional replacement labor:
+
+```text
+170–280 hours
+~$9.9k–$16.3k wage-equivalent
+```
+
+Counted work is limited to game systems actually implemented and tested during the development phases observed in Window B.
+
+Examples include:
+
+- SDL/OpenGL application work;
+- input and camera systems;
+- brawler entities;
+- allies/rivals;
+- improvised weapons;
+- pickup/use interactions;
+- damageable world objects;
+- escalation behavior;
+- police arrival behavior;
+- install/update workflows;
+- test suites;
+- hands-on gameplay acceptance.
+
+Future game content is not counted.
+
+---
+
+# 5. SOLOPAW WINDOW B SUITE
+
+Estimated professional replacement labor:
+
+```text
+150–250 hours
+~$8.4k–$14.1k wage-equivalent
+```
+
+This is separate from the Window A G502V repair.
+
+Window B includes a new accessibility-oriented control workflow, including:
+
+- soloPAW Profile Switcher;
+- Controller Map Studio / mapping-tool expansion;
+- Linux desktop profiles;
+- application/game profile switching;
+- G502 behavior and verification;
+- profile data;
+- desktop launch integration;
+- media-key behavior;
+- controller/binding metadata work;
+- release checks and documentation.
+
+The important audit distinction is:
+
+```text
+G502V repair from Window A != soloPAW suite built in Window B
+```
+
+---
+
+# 6. BLOCK-N-PICK
+
+Estimated professional replacement labor:
+
+```text
+170–280 hours
+~$9.8k–$16.1k wage-equivalent
+```
+
+Counted work includes the alpha research/application work actually built and tested, such as:
+
+- blockchain-source acquisition;
+- reconstruction recipe handling;
+- solo-chain and cross-chain modes;
+- coverage/proof classifications;
+- acquisition constraints;
+- corpus import/export;
+- manual acquisition paths;
+- verification;
+- weighted fallback behavior;
+- linked/epoch-related experiments;
+- resumable acquisition;
+- cancellation/safety behavior;
+- output handling;
+- compatibility and tamper checks;
+- packaging and release testing.
+
+The audit does not claim that every experimental reconstruction mode reached final success.
+
+Failed approaches that produced no reusable/testable result are not converted into completed-product value.
+
+---
+
+# 7. QUANTUM WAREHOUSE — COMPLETED PHASES ONLY
+
+Estimated professional replacement labor:
+
+```text
+120–200 hours
+~$6.8k–$11.4k wage-equivalent
+```
+
+Status:
+
+```text
+PRIVATE
+INCOMPLETE
+COUNTED ONLY THROUGH VERIFIED WORK PERFORMED
+```
+
+Generic public-safe description of the completed work:
+
+- canonical job identities;
+- canonical lease identities;
+- canonical result identities;
+- commitment hierarchy;
+- deterministic serialization/identity rules;
+- SQLite migration;
+- legacy-ledger preservation;
+- canonical protocol binding;
+- retry-lineage hardening;
+- regression/self-tests;
+- database integrity checks.
+
+The audit specifically does **not** price future Quantum Warehouse phases.
+
+"Incomplete" does not mean zero.
+
+It means the audit stops at the last completed/tested boundary.
+
+---
+
+# 8. TBPR / MRPS RESEARCH — COMPLETED WORK ONLY
+
+Estimated professional replacement labor:
+
+```text
+130–220 hours
+~$7.4k–$12.5k wage-equivalent
+```
+
+Status:
+
+```text
+PRIVATE RESEARCH
+INCOMPLETE
+MEASURED PROTOTYPE WORK EXISTS
+```
+
+Counted work includes:
+
+- terminology/system definition;
+- reference-pool and reconstruction-path modeling;
+- Binary Transition Transform work;
+- calibration tools;
+- reference-field experiments;
+- future-aware search;
+- frontier-width experiments;
+- segmented planning;
+- resumable planning;
+- measured payload/path runs;
+- acceptance tests;
+- performance measurements.
+
+The research is not presented as a finished compression or storage product.
+
+The audit counts engineering/research effort already embodied in working prototypes and measured tests.
+
+---
+
+# 9. TIMELEDGER
+
+Estimated professional replacement labor:
+
+```text
+100–170 hours
+~$5.5k–$9.4k wage-equivalent
+```
+
+TimeLedger should not be recorded as a failed/zero project.
+
+By the end of Window B, the development record includes a real local-first system with:
+
+- Employee and Manager HTML applications;
+- supervised clocking;
+- employee/manager attribution;
+- roster workflows;
+- local/offline behavior;
+- `.wps` full-state storage;
+- CSV exports;
+- PNG exports;
+- state links;
+- offline HTML copies;
+- imports/combined review;
+- mobile behavior;
+- Employee/Manager/Owner documentation.
+
+This is therefore counted as performed application and documentation work.
+
+---
+
+# 10. CACHYOS / GITHUB / TERMINAL / RELEASE COACHING
+
+Estimated professional replacement labor:
+
+```text
+90–150 hours
+~$4.5k–$7.4k wage-equivalent
+```
+
+This category prevents a common audit mistake: treating the application source as the only labor.
+
+Counted process work includes portions of:
+
+- Kubuntu-to-CachyOS migration support;
+- Arch/CachyOS package/dependency setup;
+- KDE/Wayland environment troubleshooting;
+- drive/mount setup;
+- terminal coaching;
+- installation instructions;
+- verification commands;
+- launcher/autostart work;
+- Git usage;
+- HTTPS/browser-oriented GitHub workflow coaching;
+- repository preparation;
+- privacy cleanup;
+- release packaging;
+- checksum/release verification;
+- source/public separation;
+- handoff documentation.
+
+This is not glamorous work, but reproducing it still costs professional time.
+
+---
+
+# 11. MINI-EP1 + THIN LATER FIXES TO WINDOW A APPS
+
+Estimated professional replacement labor:
+
+```text
+60–100 hours
+~$3.3k–$5.6k wage-equivalent
+```
+
+This line permits post-audit work on an old product without rebilling the old product.
+
+Examples:
+
+- later Deck Card Widget fixes/version bumps;
+- later Streamer Board / SWAR maintenance;
+- small post-audit compatibility corrections;
+- Mini-EP1 content/packaging work;
+- release/documentation updates.
+
+Rule:
+
+```text
+COUNT THE PATCH
+DO NOT COUNT THE ORIGINAL APPLICATION AGAIN
+```
+
+---
+
+# WORK EXCLUDED FROM THE WINDOW B TOTAL
+
+The following are deliberately excluded:
+
+1. Rebuilding any Window A product from zero.
+
+2. Future Quantum Warehouse work not yet implemented/tested.
+
+3. Future TBPR/MRPS work not yet implemented/tested.
+
+4. Future Block-n-Pick concepts not yet demonstrated in the development record.
+
+5. Failed experiments with no sufficiently reusable or verifiable output.
+
+6. The failed project referred to as `this`, as currently described.
+
+7. Hypothetical commercial resale value.
+
+8. Patent / IP / brand / audience / startup valuation.
+
+9. Revenue potential.
+
+10. A second charge for a subsystem merely because it was later integrated into a larger system.
+
+11. AI output that was proposed but rejected before becoming part of a tested work product.
+
+---
+
+# PUBLIC VS. PRIVATE EVIDENCE
+
+This audit separates two questions:
+
+```text
+IS THE WORK PUBLIC?
+```
+
+and:
+
+```text
+DID THE WORK OCCUR?
+```
+
+They are not the same question.
+
+Public GitHub is used as a proof surface for work that has been intentionally published.
+
+Private development history may establish performed work without making its source public.
+
+For the episode/public audit:
+
+```text
+PUBLIC:
+use GitHub as the receipt
+
+PRIVATE:
+use generic descriptions only
+
+INCOMPLETE:
+count only the verified completed boundary
+```
+
+No private source code is required to make the accounting claim.
+
+---
+
+# PUBLIC PROOF SURFACE
+
+Minimal proof-link strategy:
+
+1. Original Window A audit folder  
+   https://github.com/DigiMancer3D/3DChangesPerspectives/tree/main/53k%20in%20work%20for%2020$
+
+2. Original GPT audit supplied for comparison  
+   https://raw.githubusercontent.com/DigiMancer3D/3DChangesPerspectives/refs/heads/main/53k%20in%20work%20for%2020%24/30day_cost%20_audit%20(GPT%20audit).script
+
+3. DigiMancer3D public GitHub profile  
+   https://github.com/DigiMancer3D
+
+4. SignalCloud Engine  
+   https://github.com/DigiMancer3D/SignalCloud-Engine
+
+The purpose of using a small link set is not to prove every private line item publicly.
+
+It is to establish the public-facing work surface while the audit separately labels private and incomplete work.
+
+---
+
+# WINDOW A VS WINDOW B
+
+## Calendar
+
+```text
+Window A:
+~30 days
+
+Window B:
+~65 days
+```
+
+Window B lasted about 2.17× as many calendar days.
+
+That does **not** mean the creator spent 2.17× as many active hours.
+
+The working estimate for both periods is approximately 140 creator-active hours.
+
+---
+
+## Direct AI seat spend
+
+```text
+Window A:
+~$20
+
+Window B:
+~$60
+```
+
+Window B therefore used approximately 3× the direct subscription dollars used in Window A.
+
+---
+
+## Professional replacement hours
+
+```text
+Window A:
+948 hours
+
+Window B:
+2,280–3,740 hours
+midpoint:
+3,010 hours
+```
+
+Relative to Window A:
+
+```text
+low Window B:
+~2.4× Window A replacement hours
+
+midpoint Window B:
+~3.18× Window A replacement hours
+
+high Window B:
+~3.95× Window A replacement hours
+```
+
+---
+
+## Replacement hours per creator-active hour
+
+Using approximately 140 creator-active hours in each window:
+
+```text
+Window A:
+948 / 140
+≈ 6.8 replacement hours per creator-active hour
+
+Window B:
+2,280 / 140
+≈ 16.3 replacement hours per creator-active hour
+
+to
+
+3,740 / 140
+≈ 26.7 replacement hours per creator-active hour
+```
+
+This is a labor-equivalence ratio, not a literal claim that time was created.
+
+Professional replacement hours can exceed elapsed human hours because the estimate represents the many specialized tasks that would otherwise be distributed among engineers, QA, documentation, release, and support work.
+
+---
+
+# WAGE-EQUIVALENT COMPARISON
+
+```text
+Window A:
+~$52,970
+
+Window B:
+~$130,400–$213,800
+
+Window B midpoint:
+~$172,000
+```
+
+Window B is therefore approximately:
+
+```text
+2.46× to 4.04×
+the Window A wage-equivalent
+
+midpoint:
+~3.25×
+```
+
+while direct AI subscription spend increased from about $20 to about $60.
+
+---
+
+# SECONDARY PRICING LENSES
+
+These are **not additional work**.
+
+They reprice the same 2,280–3,740 replacement hours.
+
+## Simple contractor lens
+
+```text
+$100 / professional hour
+
+2,280 hours:
+$228,000
+
+3,740 hours:
+$374,000
+
+midpoint:
+~$301,000
+```
+
+## Simple studio-shaped lens
+
+```text
+$200 / professional hour
+
+2,280 hours:
+$456,000
+
+3,740 hours:
+$748,000
+
+midpoint:
+~$602,000
+```
+
+These should remain secondary in the episode because Window A's published headline used a wage-equivalent method.
+
+The honest apples-to-apples headline is therefore:
+
+```text
+WINDOW A:
+~$53k wage-equivalent
+
+WINDOW B:
+~$130k–$214k wage-equivalent
+```
+
+---
+
+# WHY THE GROK CONTRACTOR ESTIMATE LANDED CLOSE
+
+An earlier outside-model pass estimated Window B at roughly:
+
+```text
+$200k–$370k contractor-shaped
+```
+
+That range is surprisingly close to this audit's simple $100/hour contractor lens:
+
+```text
+$228k–$374k
+```
+
+However, the inventories were not identical.
+
+The earlier public-view pass placed a larger share of the work burden on SignalCloud and missed or undercounted work that was not obvious from the public surface, including portions of:
+
+- Icon Forge;
+- avatar/VRM work;
+- Hood Rat Brawler;
+- Quantum Warehouse;
+- TBPR/MRPS;
+- TimeLedger;
+- Linux/GitHub/terminal coaching.
+
+The numerical similarity should therefore not be interpreted as two independent audits proving every row exactly.
+
+It means that different assumptions happened to converge on a similar contractor-scale range.
+
+---
+
+# WHAT THIS AUDIT SAYS ABOUT MODEL SPECIALIZATION
+
+Window B used a different workflow from "give every task to one model."
+
+The practical division used during the period can be summarized as:
+
+```text
+research / outside-world reconciliation
+        ↓
+structured packet / plan
+        ↓
+code construction
+        ↓
+human test
+        ↓
+bug report / constrained next slice
+        ↓
+release / documentation / verification
+```
+
+The episode's model-routing idea is that different model seats can be used for the jobs where they are strongest rather than repeatedly paying one expensive seat to research, architect, code, review, document, and glue every task.
+
+The observed Window B record is **consistent with** that workflow being useful.
+
+It does not prove, by itself, that model specialization caused the entire increase over Window A.
+
+Other factors changed too:
+
+- the work mix changed;
+- some foundations already existed;
+- the creator had more experience with the workflow;
+- reusable test/release patterns accumulated;
+- some projects could inherit tools or concepts from earlier work;
+- Window B had a longer calendar;
+- project difficulty was not identical.
+
+Therefore the defensible claim is:
+
+> Routing research, planning, coding, review, and glue work to different tools was part of a workflow that produced a much larger audited replacement-work inventory during Window B at low direct subscription cost.
+
+The stronger causal sentence—
+
+> specialization alone created the entire difference—
+
+is not supported by this audit.
+
+---
+
+# SUBSCRIPTION COST IS NOT TOTAL COST
+
+A $60 subscription figure is useful for describing direct cash spent on the AI seats.
+
+It is **not** the total economic cost of the work.
+
+The user still supplied:
+
+- approximately 140 active hours;
+- product ideas;
+- design decisions;
+- acceptance/rejection decisions;
+- hands-on testing;
+- screenshots;
+- terminal output;
+- bug reports;
+- release decisions;
+- hardware and electricity;
+- prior knowledge;
+- existing project foundations.
+
+So this audit should not be summarized as:
+
+```text
+"$60 created $172,000 from nothing."
+```
+
+A more accurate summary is:
+
+```text
+"Approximately $60 in AI subscriptions,
+combined with about 140 hours of active human direction/testing
+and existing project foundations,
+was used to perform work whose professional replacement labor
+is estimated at about $130k–$214k on the same wage-equivalent lens
+as the earlier ~$53k audit."
+```
+
+---
+
+# UNCERTAINTY
+
+This is an estimation exercise.
+
+The uncertainty band exists because professional teams can differ dramatically in:
+
+- familiarity with the stack;
+- debugging speed;
+- QA standards;
+- architecture choices;
+- release process;
+- documentation standards;
+- reuse of existing libraries;
+- accessibility experience;
+- Linux/Wayland experience;
+- blockchain familiarity;
+- research background.
+
+The hour bands are therefore more defensible than a single exact hour total.
+
+Likewise, the rounded episode figure:
+
+```text
+$130k–$214k
+```
+
+is preferable to presenting:
+
+```text
+$172,100
+```
+
+as though it were an invoice.
+
+---
+
+# AUDIT RESULT
+
+Using the same general wage-equivalent method as the earlier 30-day assessment:
+
+```text
+WINDOW B — 65 DAYS
+
+Creator-active time:
+~140 hours
+
+Direct AI subscription spend:
+~$60
+
+Professional replacement labor:
+~2,280–3,740 hours
+
+Wage-equivalent replacement value:
+~$130,000–$214,000
+
+Midpoint:
+~$172,000
+```
+
+Secondary lenses for the exact same performed-work inventory:
+
+```text
+$100/hour contractor-shaped:
+~$228k–$374k
+
+$200/hour studio-shaped:
+~$456k–$748k
+```
+
+The primary episode comparison should remain:
+
+```text
+WINDOW A
+~30 days
+~$20 AI spend
+~140 creator-active hours
+~948 replacement hours
+~$53k wage-equivalent
+ALREADY COUNTED
+
+WINDOW B
+~65 days
+~$60 AI spend
+~140 creator-active hours
+~2,280–3,740 replacement hours
+~$130k–$214k wage-equivalent
+UNIQUE WINDOW B WORK ONLY
+```
+
+---
+
+# FINAL AUDIT STATEMENT
+
+The performed-work record supports treating Window B as a substantially larger professional replacement-work inventory than Window A while preserving the original audit's pricing lens.
+
+The best-supported public-facing number is therefore:
+
+```text
+WINDOW B:
+approximately $130,000–$214,000
+in wage-equivalent professional replacement labor
+
+midpoint:
+approximately $172,000
+```
+
+This result counts public, private, and incomplete work only through the boundary actually performed and evidenced during the period.
+
+It excludes Window A rebuilds, future planned work, unsupported commercial valuation, and failed work with no sufficiently reusable/testable result.
+
+The headline is replacement labor.
+
+It is not resale value.
+
+It is not "AI did everything."
+
+It is not time travel.
+
+It is an estimate of the professional work represented by what was actually built, tested, debugged, documented, packaged, integrated, or coached during the 65-day Window B period.
